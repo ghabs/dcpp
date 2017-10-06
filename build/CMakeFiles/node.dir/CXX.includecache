@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/ghabs/Programming/cpp/node/node.cpp
+ctime
+-
+iostream
+-
+string
+-
+node.h
+/home/ghabs/Programming/cpp/node/node.h
+
+/home/ghabs/Programming/cpp/node/node.h
+string
+-
+map
+-
+

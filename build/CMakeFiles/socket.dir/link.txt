@@ -1,0 +1,1 @@
+/usr/bin/c++  -std=c++11  -rdynamic CMakeFiles/socket.dir/socket.cpp.o  -o socket -Wl,-rpath,/usr/local/lib /usr/local/lib/libboost_system.so /usr/local/lib/libboost_filesystem.so 
