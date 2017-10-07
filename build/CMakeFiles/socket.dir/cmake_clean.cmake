@@ -1,7 +1,7 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/socket.dir/socket.cpp.o"
-  "socket.pdb"
-  "socket"
+  "CMakeFiles/socket.dir/socket/socket.cpp.o"
+  "libsocket.pdb"
+  "libsocket.a"
 )
 
 # Per-language clean rules from dependency scanning.

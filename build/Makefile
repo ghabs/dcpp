@@ -111,6 +111,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named socket
+
+# Build rule for target.
+socket: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 socket
+.PHONY : socket
+
+# fast build rule for target.
+socket/fast:
+	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/build
+.PHONY : socket/fast
+
+#=============================================================================
 # Target rules for targets named node
 
 # Build rule for target.
@@ -150,6 +163,33 @@ node.cpp.s:
 	$(MAKE) -f CMakeFiles/node.dir/build.make CMakeFiles/node.dir/node.cpp.s
 .PHONY : node.cpp.s
 
+socket/socket.o: socket/socket.cpp.o
+
+.PHONY : socket/socket.o
+
+# target to build an object file
+socket/socket.cpp.o:
+	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/socket/socket.cpp.o
+.PHONY : socket/socket.cpp.o
+
+socket/socket.i: socket/socket.cpp.i
+
+.PHONY : socket/socket.i
+
+# target to preprocess a source file
+socket/socket.cpp.i:
+	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/socket/socket.cpp.i
+.PHONY : socket/socket.cpp.i
+
+socket/socket.s: socket/socket.cpp.s
+
+.PHONY : socket/socket.s
+
+# target to generate assembly for a file
+socket/socket.cpp.s:
+	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/socket/socket.cpp.s
+.PHONY : socket/socket.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -158,10 +198,14 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
+	@echo "... socket"
 	@echo "... node"
 	@echo "... node.o"
 	@echo "... node.i"
 	@echo "... node.s"
+	@echo "... socket/socket.o"
+	@echo "... socket/socket.i"
+	@echo "... socket/socket.s"
 .PHONY : help
 
 

@@ -1,1 +1,1 @@
-/usr/bin/c++  -std=c++11  -rdynamic CMakeFiles/node.dir/node.cpp.o  -o node -Wl,-rpath,/usr/local/lib /usr/local/lib/libboost_system.so /usr/local/lib/libboost_filesystem.so 
+/usr/bin/c++  -std=c++11  -rdynamic CMakeFiles/node.dir/node.cpp.o  -o node -Wl,-rpath,/usr/local/lib /usr/local/lib/libboost_system.so /usr/local/lib/libboost_filesystem.so libsocket.a 

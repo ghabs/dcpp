@@ -6,5 +6,33 @@
 
 #IncludeRegexTransform: 
 
-/home/ghabs/Programming/cpp/node/socket.cpp
+/home/ghabs/Programming/cpp/node/socket/socket.cpp
+socket.h
+/home/ghabs/Programming/cpp/node/socket/socket.h
+string.h
+/home/ghabs/Programming/cpp/node/socket/string.h
+string.h
+-
+errno.h
+-
+fcntl.h
+-
+iostream
+-
+
+/home/ghabs/Programming/cpp/node/socket/socket.h
+sys/types.h
+-
+sys/socket.h
+-
+netinet/in.h
+-
+netdb.h
+-
+unistd.h
+-
+string
+-
+arpa/inet.h
+-
 

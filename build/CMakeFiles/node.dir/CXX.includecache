@@ -13,6 +13,8 @@ iostream
 -
 string
 -
+exception
+-
 node.h
 /home/ghabs/Programming/cpp/node/node.h
 
@@ -20,5 +22,23 @@ node.h
 string
 -
 map
+-
+socket/socket.h
+/home/ghabs/Programming/cpp/node/socket/socket.h
+
+/home/ghabs/Programming/cpp/node/socket/socket.h
+sys/types.h
+-
+sys/socket.h
+-
+netinet/in.h
+-
+netdb.h
+-
+unistd.h
+-
+string
+-
+arpa/inet.h
 -
 

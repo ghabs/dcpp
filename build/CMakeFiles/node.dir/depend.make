@@ -3,4 +3,5 @@
 
 CMakeFiles/node.dir/node.cpp.o: ../node.cpp
 CMakeFiles/node.dir/node.cpp.o: ../node.h
+CMakeFiles/node.dir/node.cpp.o: ../socket/socket.h
 

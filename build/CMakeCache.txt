@@ -190,6 +190,9 @@ node_BINARY_DIR:STATIC=/home/ghabs/Programming/cpp/node/build
 //Value Computed by CMake
 node_SOURCE_DIR:STATIC=/home/ghabs/Programming/cpp/node
 
+//Dependencies for target
+socket_LIB_DEPENDS:STATIC=
+
 
 ########################
 # INTERNAL cache entries

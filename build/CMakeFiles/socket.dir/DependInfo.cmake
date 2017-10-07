@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/ghabs/Programming/cpp/node/socket.cpp" "/home/ghabs/Programming/cpp/node/build/CMakeFiles/socket.dir/socket.cpp.o"
+  "/home/ghabs/Programming/cpp/node/socket/socket.cpp" "/home/ghabs/Programming/cpp/node/build/CMakeFiles/socket.dir/socket/socket.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

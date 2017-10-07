@@ -92,6 +92,7 @@ node: CMakeFiles/node.dir/node.cpp.o
 node: CMakeFiles/node.dir/build.make
 node: /usr/local/lib/libboost_system.so
 node: /usr/local/lib/libboost_filesystem.so
+node: libsocket.a
 node: CMakeFiles/node.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/ghabs/Programming/cpp/node/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable node"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/node.dir/link.txt --verbose=$(VERBOSE)
