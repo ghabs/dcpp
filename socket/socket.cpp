@@ -1,12 +1,12 @@
 // Implementation of the Socket class.
 
 
-#include "Socket.h"
+#include "socket.h"
 #include "string.h"
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-
+#include <iostream>
 
 
 Socket::Socket() : m_sock ( -1 ) {
@@ -127,7 +127,6 @@ int Socket::recv ( std::string& s ) const
 
   //this fills the buffer with everything that has been received on the socket
   int status = ::recv ( m_sock, buf, MAXRECV, 0 );
-
   if ( status == -1 )
     {
       std::cout << "status == -1   errno == " << errno << "  in Socket::recv\n";
