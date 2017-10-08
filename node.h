@@ -5,6 +5,8 @@
 #include "socket/socket.h"
 
 //TODO(): create struct for keyspace;
+//TODO(): Define interface between nodes
+//TODO(): Add more constants
 
 using namespace std;
 namespace node {
@@ -14,11 +16,13 @@ namespace node {
     ~Node();
     string get_address();
     int run();
+    void remote_node_controller(const string option);
     int add(string address);
     int disconnect();
     int put_value(string);
     int get_value(int);
-    int set_keyspace(int nodes);
+    int* get_keyspace();
+    int set_keyspace(int nodes, int key_lower, int key_higher);
     string current_time();
     string print_partner();
   private:
@@ -31,7 +35,7 @@ namespace node {
     Socket accept_socket;
     Socket client_socket;
     int key_space[2];
-    std::map<int, string> storage;
+    map<int, string> storage;
   };
 } // node
 
