@@ -3,6 +3,7 @@
 **************************************************************************/
 #include <ctime>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <exception>
 #include "node.h"
@@ -68,6 +69,7 @@ int Node::run(){
     accept_socket.recv(data);
 
     if (data[0] == 'C'){
+      cout << "data received" << '\n';
       this->remote_node_controller(data);
     }
     else {
@@ -84,34 +86,62 @@ void Node::remote_node_controller(const string option) {
     //handle incoming connection and parsed data
     //call other internal functions
     //send to other functions
-    string command = option.substr(0,1);
+    commands::Commands comm;
+    comm.option = option.substr(0,2);
     string send_data = "";
-    if (command == "C1") {
+    string buff = "";
+    int i = 2;
+    if (comm.option == "C1") {
       /* code */
-    } else if (command == "C2") {
+    } else if (comm.option == "C2") {
       auto keyspace = this->get_keyspace();
       send_data += "C4" + keyspace[0] + ':' + keyspace[1] + '\n';
       accept_socket.send(send_data);
-    } else if (command == "C3") {
+    } else if (comm.option == "C3") {
 
     }
+    //C4: Set Keyspace
     //UGH change this
-    else if (command == "C4") {
-      int i = 2;
+    else if (comm.option == "C4") {
       int key_lower, key_higher;
-      string buff = "";
-      while (command[i] != '\n') {
-        if (command[i] == ':') {
+      //TODO replace with command struct
+      while (option[i] != '\n') {
+        if (option[i] == ':') {
           key_lower ? key_higher = stoi(buff) : key_lower = stoi(buff);
+          buff = "";
         }
         else {
-          buff += command[i];
+          buff += option[i];
         }
         i++;
       }
+      this->set_keyspace(1, key_lower, key_higher);
+    }
+    else if (comm.option == "C5"){
+      //C5: Put values
+      //TODO replace with command struct
+      while (option[i] != '\n') {
+        if (option[i] == ':') {
+          //return keys to original caller
+          comm.data[(sizeof(comm.data)-1)] = buff;
+          buff = "";
+        }
+        else {
+          buff += option[i];
+        }
+        i++;
+      }
+    send_data += "N2";
+    for (size_t i = (sizeof(comm.data)-1); i >= 0; i--) {
+      int key = this->put_value(comm.data[i]);
+      send_data += key;
+      send_data += ':';
+    }
+    //Is this blocking? How does this work async?;
+    accept_socket.send(send_data);
     }
     else {
-      /* code */
+      cout << "Unknown Command" << '\n';
     }
 }
 
@@ -144,6 +174,8 @@ int Node::put_value(string val){
 int Node::get_value(int key){
 
 }
+
+
 
 int Node::set_keyspace(int nodes = 0, int key_lower = 0, int key_higher = 100){
   if (nodes == 0) {
@@ -180,7 +212,7 @@ string Node::current_time(){
 }
 } // node
 
-
+//TODO (add command line arguments)
 int main()
 {
    node::Node n;

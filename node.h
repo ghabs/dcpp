@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include "socket/socket.h"
+#include "commands.h"
 
 //TODO(): create struct for keyspace;
 //TODO(): Define interface between nodes
