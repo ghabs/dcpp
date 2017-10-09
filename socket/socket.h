@@ -30,6 +30,7 @@ class Socket
   // Client initialization
   bool connect ( const std::string host, const int port );
   // Returns true false if the string has sent
+  bool close ();
   bool send ( const std::string ) const;
   // Receive data from the socket
   int recv ( std::string& ) const;

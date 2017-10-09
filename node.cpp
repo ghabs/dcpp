@@ -3,7 +3,6 @@
 **************************************************************************/
 #include <ctime>
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <exception>
 #include "node.h"
@@ -11,46 +10,27 @@
 using namespace std;
 
 namespace node {
-  //TODO(goldhaber) Add in option to not connect and be solitary node
-Node::Node(int port=3001, string partner_address = "127.0.0.1", int partner_port=3000)
+  Node::Node(int port=3001, string partner_address = "127.0.0.1", int partner_port=3000)
   : _partner_address(partner_address), _partner_port(partner_port), _port(port) {
-  //create client socket to reach out to partner node (if exists)
-  client_socket.create();
-  server_socket.create();
+    client_socket.create();
+    server_socket.create();
 
-  if (client_socket.connect(partner_address, partner_port)) {
-    //gets the key space it needs to operate in
-    //receive a connection message from the node
-    //this->set_keyspace(1, , );
-    bool sent;
-    sent = client_socket.send("C2");
-    if (!sent){
-      cout << "Error sending message." << '\n';
-    }
-  }
-  else {
-    cout << "Could not bind to client port. Setting keyspace as all." << '\n';
-    this->set_keyspace(0,0,100);
-  }
-  //Bind to the port provided
-  //TODO(goldhaber): throw exception
-  if (!server_socket.bind(port))
+    //TODO(goldhaber): throw exception
+    if (!server_socket.bind(port))
     {
       cout << "Could not bind to port." << '\n';
     }
-  else {
-    cout << "Node has bound to port " << port << '\n';
+    else {
+      cout << "Node has bound to port " << port << '\n';
+    }
+    //listen for incoming connections (while not yet running / accepting new connections)
+    if (!server_socket.listen()) {
+      cout << "Could not listen to socket."  << '\n';
+    }
+    else {
+      cout << "Node is listening on port " << port << '\n';
+    }
   }
-  //listen for incoming connections (while not yet running / accepting new connections)
-  if (!server_socket.listen()) {
-    cout << "Could not listen to socket."  << '\n';
-  }
-  else {
-    cout << "Node is listening on port " << port << '\n';
-  }
-
-  //receive and store data
-}
 
 Node::~Node() {
  //call disconnect function
@@ -59,15 +39,34 @@ Node::~Node() {
 
 int Node::run(){
  // start up a server
- // runs until it receives (tk) a command to turn off
+ // runs until it receives (TODO) a command to turn off
  // Handles all put get calls
+   string data;
 
+   _client_status = client_socket.connect(_partner_address, _partner_port);
+   if (_client_status) {
+     //gets the key space it needs to operate in
+     //receive a connection message from the node
+     //this->set_keyspace(1, , );
+     bool sent;
+     sent = client_socket.send("C2");
+     if (!sent){
+       cout << "Error sending message." << '\n';
+     }
+     client_socket.recv(data);
+     cout << "client: " << data << '\n';
+     client_socket.close();
+     //If Received notification of confirmed keyspace change then update own
+   }
+   else {
+     cout << "Could not bind to client port. Setting keyspace as all." << '\n';
+     this->set_keyspace(0,0,100);
+   }
   bool run_server = true;
   while(run_server) {
-    string data;
+    cout << "running server" << '\n';
     server_socket.accept(accept_socket);
     accept_socket.recv(data);
-
     if (data[0] == 'C'){
       cout << "data received" << '\n';
       this->remote_node_controller(data);
@@ -94,8 +93,9 @@ void Node::remote_node_controller(const string option) {
     if (comm.option == "C1") {
       /* code */
     } else if (comm.option == "C2") {
-      auto keyspace = this->get_keyspace();
-      send_data += "C4" + keyspace[0] + ':' + keyspace[1] + '\n';
+      //THIS IS INCORRECT
+      cout << key_space[1] << '\n';
+      send_data += "C4" + to_string(key_space[0]) + ':' + to_string(key_space[1]);
       accept_socket.send(send_data);
     } else if (comm.option == "C3") {
 
@@ -213,10 +213,17 @@ string Node::current_time(){
 } // node
 
 //TODO (add command line arguments)
-int main()
+int main(int argc, char *argv[])
 {
+  if (argc < 2){
    node::Node n;
-   n.print_partner();
    n.run();
+ } else {
+   int port = atoi(argv[1]);
+   string paddress = argv[2];
+   int pport = atoi(argv[3]);
+   node::Node n(port, paddress, pport);
+   n.run();
+ }
    return 0;
 }

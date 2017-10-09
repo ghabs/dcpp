@@ -56,7 +56,6 @@ bool Socket::bind ( const int port ) {
   // The htonl() function converts the unsigned integer hostlong from host byte order to network byte order
   m_addr.sin_port = htons ( port );
 
-  // I think having the :: means that it's calling the sys/socket.h call
   int bind_return = ::bind ( m_sock,
 			     ( struct sockaddr * ) &m_addr,
 			     sizeof ( m_addr ) );
@@ -88,7 +87,6 @@ bool Socket::listen() const
   return true;
 }
 
-//TODO(goldhaber): why is this accept command useful?
 // /The accept() function extracts the first connection on the queue of pending connections
 // creates a new socket with the same socket type protocol and address family as the specified socket, and allocates a new file descriptor for that socket.
 bool Socket::accept ( Socket& new_socket ) const
@@ -162,6 +160,12 @@ bool Socket::connect ( const std::string host, const int port )
     return true;
   else
     return false;
+}
+
+bool Socket::close()
+{
+  if ( is_valid() )
+    ::close ( m_sock );  
 }
 
 // Manipulates file flag to set as blocking or non-blocking

@@ -2,6 +2,8 @@ First project with C++, building a decentralized hash table.
 
 Todo: Change this protocol to be serialized with protobufs
 
+Todo: Change to have separate client and server classes.
+
 Todo: Reevaluate spacing
 Protocol:
 Message 0 - 3: Command
@@ -29,3 +31,4 @@ N2:
 N3:
 N4:
 N5: Keys
+N7: Current Time

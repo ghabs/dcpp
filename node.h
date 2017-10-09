@@ -35,6 +35,7 @@ namespace node {
     //Change to allow many sockets to be created, stored in array
     Socket accept_socket;
     Socket client_socket;
+    bool _client_status;
     int key_space[2];
     map<int, string> storage;
   };
