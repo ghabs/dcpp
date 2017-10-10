@@ -21,6 +21,16 @@ exception
 -
 node.h
 /home/ghabs/Programming/cpp/node/node.h
+pthread.h
+-
+poll.h
+-
+cstring
+-
+sys/socket.h
+-
+fcntl.h
+-
 
 /home/ghabs/Programming/cpp/node/node.h
 string

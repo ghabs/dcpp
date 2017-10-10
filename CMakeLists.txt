@@ -16,7 +16,7 @@ project(${exercise} CXX)
 
 # Enable C++11 features on gcc/clang
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "(GNU|Clang)")
-    set(CMAKE_CXX_FLAGS "-std=c++11")
+    set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
 endif()
 
 # Get a source filename from the exercise name by replacing -'s with _'s

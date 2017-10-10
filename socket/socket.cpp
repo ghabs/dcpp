@@ -89,15 +89,15 @@ bool Socket::listen() const
 
 // /The accept() function extracts the first connection on the queue of pending connections
 // creates a new socket with the same socket type protocol and address family as the specified socket, and allocates a new file descriptor for that socket.
-bool Socket::accept ( Socket& new_socket ) const
+Socket& Socket::accept ( Socket& new_socket ) const
 {
   int addr_length = sizeof ( m_addr );
   new_socket.m_sock = ::accept ( m_sock, ( sockaddr * ) &m_addr, ( socklen_t * ) &addr_length );
 
-  if ( new_socket.m_sock <= 0 )
-    return false;
-  else
-    return true;
+//  if ( new_socket.m_sock <= 0 )
+//    return -1;
+//  else
+    return new_socket;
 }
 
 
@@ -165,7 +165,7 @@ bool Socket::connect ( const std::string host, const int port )
 bool Socket::close()
 {
   if ( is_valid() )
-    ::close ( m_sock );  
+    ::close ( m_sock );
 }
 
 // Manipulates file flag to set as blocking or non-blocking
@@ -190,4 +190,12 @@ void Socket::set_non_blocking ( const bool b )
   fcntl ( m_sock,
 	  F_SETFL,opts );
 
+}
+
+bool Socket::is_closed(){
+  char buf [ MAXRECV + 1 ];
+  if (::recv(m_sock, buf, MAXRECV, MSG_PEEK | MSG_DONTWAIT) == 0) {
+    return true;
+  }
+  return false;
 }

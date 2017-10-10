@@ -26,7 +26,7 @@ class Socket
   bool create();
   bool bind ( const int port );
   bool listen() const;
-  bool accept ( Socket& ) const;
+  Socket& accept ( Socket& ) const;
   // Client initialization
   bool connect ( const std::string host, const int port );
   // Returns true false if the string has sent
@@ -37,6 +37,8 @@ class Socket
   void set_non_blocking ( const bool );
   // Returns if m_sock is available
   bool is_valid() const { return m_sock != -1; }
+  bool is_closed();
+  int get_sock_descriptor() const { return m_sock; }
  private:
    // close the socket
   int m_sock;

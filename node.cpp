@@ -6,7 +6,13 @@
 #include <string>
 #include <exception>
 #include "node.h"
-#include <thread>
+#include <pthread.h>
+#include <poll.h>
+#include <cstring>
+#include <sys/socket.h>
+#include <fcntl.h>
+
+#define NUM_THREADS     5
 
 using namespace std;
 
@@ -15,6 +21,7 @@ namespace node {
   : _partner_address(partner_address), _partner_port(partner_port), _port(port) {
     client_socket.create();
     server_socket.create();
+    server_socket.set_non_blocking(true);
 
     //TODO(goldhaber): throw exception
     if (!server_socket.bind(port))
@@ -42,23 +49,18 @@ int Node::run(){
  // start up a server
  // runs until it receives (TODO) a command to turn off
  // Handles all put get calls
-   string data;
-   this->add();
-  bool run_server = true;
-  while(run_server) {
-    cout << "running server" << '\n';
-    server_socket.accept(accept_socket);
-    accept_socket.recv(data);
-    if (data[0] == 'C'){
-      cout << "data received" << '\n';
-      this->remote_node_controller(data);
-    }
-    else {
-      //Currently echoes data received. Parse for commands.
-      cout << data << '\n';
-    }
-    data = "";
-  }
+ //set up as class variable? Thread pools?
+  pthread_t threads[ NUM_THREADS ];
+  string thread_args[1];
+  int result_code;
+  thread_args[0] = "initial client";
+  result_code = pthread_create(&threads[0], NULL, Node::callAddFunction, this);
+  pthread_detach(threads[0]);
+  //Should be changed to allow multiple server connections
+  //That means multiple accept sockets and polling, monitoring if they are all shut
+  result_code = pthread_create(&threads[1], NULL, Node::callServerFunction, this);
+  pthread_join(threads[1], NULL);
+
   return 0;
 }
 
@@ -131,7 +133,10 @@ int Node::disconnect(){
  // call partner node send disconnect message
 }
 
-int Node::add(){
+// To be called in separate thread
+void* Node::add(void){
+  cout << "called add!" << '\n';
+  string data;
   _client_status = client_socket.connect(_partner_address, _partner_port);
 
   if (_client_status) {
@@ -145,13 +150,85 @@ int Node::add(){
     }
     client_socket.recv(data);
     cout << "client: " << data << '\n';
+    this->remote_node_controller(data);
+    // Check if theres data to send, (how to do that between threads)
+    //How to keep socket open and then pass in more data to the thread?
     client_socket.close();
-    //If Received notification of confirmed keyspace change then update own
   }
   else {
     cout << "Could not bind to client port. Setting keyspace as all." << '\n';
     this->set_keyspace(0,0,100);
+    return NULL;
   }
+  return NULL;
+}
+
+void* Node::server(void){
+  struct pollfd fds[NUM_THREADS];
+  memset(fds, 0 , sizeof(fds));
+  char buf [ 1024 ];
+  int opts;
+  opts = ( opts | O_NONBLOCK );
+  //5 second polling rate
+  int timeout = (5 * 1000);
+  //number of sockets to poll
+  int nsock = 1;
+  int current_size;
+  int rc;
+  int test_server;
+  test_server = socket ( AF_INET, SOCK_STREAM, 0 );
+  opts =  fcntl ( test_server, F_GETFL );
+
+  fcntl ( test_server, F_SETFL, opts );
+  string data;
+
+  fds[0].fd = test_server;
+  fds[0].events = POLLIN;
+
+
+  bool run_server = true;
+  while(run_server) {
+    cout << "running server" << '\n';
+    //This only blocks until something happens on the monitored port, then it becomes available
+    sleep(3);
+    rc = poll(fds, nsock, timeout);
+    current_size = nsock;
+    for (size_t i = 0; i < current_size; i++) {
+      if (rc == 0) {
+        cout << "nothing happened" << '\n';
+      }
+      else if (fds[0].revents & POLLIN){
+        cout << "accepting data" << '\n';
+        server_socket.accept(accept_socket);
+        accept_socket.set_non_blocking(true);
+        fds[nsock].fd = accept_socket.get_sock_descriptor();
+        fds[nsock].events = POLLIN;
+        nsock++;
+        cout << nsock << '\n';
+      }
+      else {
+        ::read ( fds[1].fd, buf, 1023);
+        for (size_t i = 0; i < current_size; i++) {
+          cout << fds[i].revents << '\n';
+        }
+        cout << buf << '\n';
+      }
+        if (data[0] == 'C'){
+          cout << "data received" << '\n';
+          this->remote_node_controller(data);
+        }
+        else if (data == "close\n"){
+          cout << "shutting down" << '\n';
+          run_server = false;
+        }
+        else {
+          //Currently echoes data received. Parse for commands.
+          //cout << data << '\n';
+        }
+      data = "";
+    }
+  }
+  return NULL;
 }
 
 int Node::put_value(string val){

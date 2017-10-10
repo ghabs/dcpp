@@ -18,7 +18,10 @@ namespace node {
     string get_address();
     int run();
     void remote_node_controller(const string option);
-    int add();
+    static void* callAddFunction(void *arg) { return ((Node*)arg)->add(); }
+    static void* callServerFunction(void *arg) { return ((Node*)arg)->server(); }
+    void* add(void);
+    void* server(void);
     int disconnect();
     int put_value(string);
     int get_value(int);
