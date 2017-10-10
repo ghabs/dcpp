@@ -166,33 +166,33 @@ void* Node::add(void){
 void* Node::server(void){
   struct pollfd fds[NUM_THREADS];
   memset(fds, 0 , sizeof(fds));
+  fds[0].fd = server_socket.get_sock_descriptor();
+  fds[0].events = POLLIN;
   char buf [ 1024 ];
-  int opts;
-  opts = ( opts | O_NONBLOCK );
+
   //5 second polling rate
   int timeout = (5 * 1000);
   //number of sockets to poll
   int nsock = 1;
   int current_size;
   int rc;
-  int test_server;
+/*  int test_server;
+  int opts;
+  opts = ( opts | O_NONBLOCK );
   test_server = socket ( AF_INET, SOCK_STREAM, 0 );
   opts =  fcntl ( test_server, F_GETFL );
-
   fcntl ( test_server, F_SETFL, opts );
-  string data;
-
-  fds[0].fd = test_server;
-  fds[0].events = POLLIN;
-
-
+*/  string data;
   bool run_server = true;
   while(run_server) {
     cout << "running server" << '\n';
     //This only blocks until something happens on the monitored port, then it becomes available
-    sleep(3);
+    sleep(1);
     rc = poll(fds, nsock, timeout);
     current_size = nsock;
+    for (size_t i = 0; i < current_size; i++) {
+      cout << fds[i].revents << '\n';
+    }
     for (size_t i = 0; i < current_size; i++) {
       if (rc == 0) {
         cout << "nothing happened" << '\n';
@@ -206,11 +206,14 @@ void* Node::server(void){
         nsock++;
         cout << nsock << '\n';
       }
-      else {
+      else if(fds[1].revents & POLLIN) {
         ::read ( fds[1].fd, buf, 1023);
-        for (size_t i = 0; i < current_size; i++) {
-          cout << fds[i].revents << '\n';
-        }
+        cout << buf << '\n';
+      //  ::close(fds[1].fd);
+      }
+      else if(fds[1].revents){
+        cout << "non-pollin" <<'\n';
+        ::read ( fds[1].fd, buf, 1023);
         cout << buf << '\n';
       }
         if (data[0] == 'C'){

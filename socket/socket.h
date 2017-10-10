@@ -38,7 +38,7 @@ class Socket
   // Returns if m_sock is available
   bool is_valid() const { return m_sock != -1; }
   bool is_closed();
-  int get_sock_descriptor() const { return m_sock; }
+  int get_sock_descriptor() { return m_sock; }
  private:
    // close the socket
   int m_sock;
