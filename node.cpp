@@ -6,6 +6,7 @@
 #include <string>
 #include <exception>
 #include "node.h"
+#include <thread>
 
 using namespace std;
 
@@ -42,26 +43,7 @@ int Node::run(){
  // runs until it receives (TODO) a command to turn off
  // Handles all put get calls
    string data;
-
-   _client_status = client_socket.connect(_partner_address, _partner_port);
-   if (_client_status) {
-     //gets the key space it needs to operate in
-     //receive a connection message from the node
-     //this->set_keyspace(1, , );
-     bool sent;
-     sent = client_socket.send("C2");
-     if (!sent){
-       cout << "Error sending message." << '\n';
-     }
-     client_socket.recv(data);
-     cout << "client: " << data << '\n';
-     client_socket.close();
-     //If Received notification of confirmed keyspace change then update own
-   }
-   else {
-     cout << "Could not bind to client port. Setting keyspace as all." << '\n';
-     this->set_keyspace(0,0,100);
-   }
+   this->add();
   bool run_server = true;
   while(run_server) {
     cout << "running server" << '\n';
@@ -149,8 +131,27 @@ int Node::disconnect(){
  // call partner node send disconnect message
 }
 
-int Node::add(string address){
+int Node::add(){
+  _client_status = client_socket.connect(_partner_address, _partner_port);
 
+  if (_client_status) {
+    //gets the key space it needs to operate in
+    //receive a connection message from the node
+    //this->set_keyspace(1, , );
+    bool sent;
+    sent = client_socket.send("C2");
+    if (!sent){
+      cout << "Error sending message." << '\n';
+    }
+    client_socket.recv(data);
+    cout << "client: " << data << '\n';
+    client_socket.close();
+    //If Received notification of confirmed keyspace change then update own
+  }
+  else {
+    cout << "Could not bind to client port. Setting keyspace as all." << '\n';
+    this->set_keyspace(0,0,100);
+  }
 }
 
 int Node::put_value(string val){

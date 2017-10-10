@@ -18,7 +18,7 @@ namespace node {
     string get_address();
     int run();
     void remote_node_controller(const string option);
-    int add(string address);
+    int add();
     int disconnect();
     int put_value(string);
     int get_value(int);
