@@ -193,6 +193,9 @@ node_SOURCE_DIR:STATIC=/home/ghabs/Programming/cpp/node
 //Dependencies for target
 socket_LIB_DEPENDS:STATIC=
 
+//Dependencies for target
+storage_LIB_DEPENDS:STATIC=
+
 
 ########################
 # INTERNAL cache entries

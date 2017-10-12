@@ -31,6 +31,7 @@ endif()
 
 # Build executable from sources and headers
 add_executable(${exercise} ${exercise_cpp} ${file}.h)
+#TODO does this need to be added as library or just included?
 add_library(socket "socket/socket.cpp" "socket/socket.h")
 
 target_link_libraries(${exercise} ${Boost_LIBRARIES})

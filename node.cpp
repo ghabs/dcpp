@@ -11,17 +11,24 @@
 #include <cstring>
 #include <sys/socket.h>
 #include <fcntl.h>
+#include <typeinfo>
+#include <unordered_map>
 
 #define NUM_THREADS     5
+
+#define MYPORT "4950"    // the port users will be connecting to
+
+#define MAXBUFLEN 100
 
 using namespace std;
 
 namespace node {
-  Node::Node(int port=3001, string partner_address = "127.0.0.1", int partner_port=3000)
+  Node::Node(int port=4950, string partner_address = "127.0.0.1", int partner_port=3002)
   : _partner_address(partner_address), _partner_port(partner_port), _port(port) {
+
     client_socket.create();
     server_socket.create();
-    server_socket.set_non_blocking(true);
+    this->set_keyspace(0,0,100);
 
     //TODO(goldhaber): throw exception
     if (!server_socket.bind(port))
@@ -31,220 +38,226 @@ namespace node {
     else {
       cout << "Node has bound to port " << port << '\n';
     }
-    //listen for incoming connections (while not yet running / accepting new connections)
-    if (!server_socket.listen()) {
-      cout << "Could not listen to socket."  << '\n';
-    }
-    else {
-      cout << "Node is listening on port " << port << '\n';
-    }
+
+
+  }
+  Node::~Node() {
+    //call disconnect function
+    //reallocate storage
   }
 
-Node::~Node() {
- //call disconnect function
- //reallocate storage
-}
+  int Node::run(){
+    // start up a server
+    // runs until it receives (TODO) a command to turn off
+    // Handles all put get calls
+    //set up as class variable? Thread pools?
+    pthread_t threads[ NUM_THREADS ];
+    string thread_args[1];
+    int result_code;
+    thread_args[0] = "initial client";
+    //Refactor call function to not be separate thread, not needed now
+    result_code = pthread_create(&threads[0], NULL, Node::callAddFunction, this);
+    pthread_join(threads[0], NULL);
+    result_code = pthread_create(&threads[1], NULL, Node::callPingFunction, this);
+    pthread_detach(threads[1]);
+    result_code = pthread_create(&threads[2], NULL, Node::callServerFunction, this);
+    pthread_join(threads[2], NULL);
 
-int Node::run(){
- // start up a server
- // runs until it receives (TODO) a command to turn off
- // Handles all put get calls
- //set up as class variable? Thread pools?
-  pthread_t threads[ NUM_THREADS ];
-  string thread_args[1];
-  int result_code;
-  thread_args[0] = "initial client";
-  result_code = pthread_create(&threads[0], NULL, Node::callAddFunction, this);
-  pthread_detach(threads[0]);
-  //Should be changed to allow multiple server connections
-  //That means multiple accept sockets and polling, monitoring if they are all shut
-  result_code = pthread_create(&threads[1], NULL, Node::callServerFunction, this);
-  pthread_join(threads[1], NULL);
+    return 0;
+  }
 
-  return 0;
-}
-
-//TODO(): turn into struct of options
-void Node::remote_node_controller(const string option) {
+  //TODO(): turn into struct of options
+  void Node::remote_node_controller(const string option, sockaddr_in client_sockaddr) {
     //handle incoming connection and parsed data
     //call other internal functions
     //send to other functions
-    commands::Commands comm;
-    comm.option = option.substr(0,2);
-    string send_data = "";
+    commands::Commands comm(option);
+    cout << "option " << comm.option << '\n';
+    string send_data = id + ':';
     string buff = "";
     int i = 2;
+    string ip_addr = inet_ntoa(client_sockaddr.sin_addr);
     if (comm.option == "C1") {
-      /* code */
+      if (comm.reqres == "ACK") {
+        request_list.erase(ip_addr);
+      }
+      else {
+        struct sockaddr_in server;
+        server.sin_port = htons(_partner_port);
+        server.sin_family = AF_INET;
+        server.sin_addr.s_addr = inet_addr("127.0.0.1");
+        send_data += "C2:REQ";
+        int csstatus = clientsend(send_data, server);
+        if(csstatus){
+          storage::peer_storage ps;
+          ps.peer_sockaddr = client_sockaddr;
+          ps.data_sent = send_data;
+          ps.response_needed = "C1";
+          request_list[ip_addr] = ps;
+        }
+      }
+
     } else if (comm.option == "C2") {
-      //THIS IS INCORRECT
-      cout << key_space[1] << '\n';
-      send_data += "C4" + to_string(key_space[0]) + ':' + to_string(key_space[1]);
-      accept_socket.send(send_data);
+      if (comm.reqres == "ACK") {
+        this->set_keyspace(1, stoi(comm.data[0])+1, key_space[1]);
+        request_list.erase(ip_addr);
+      }
+      else {
+        int mid = key_space[1] / 2;
+        send_data += "C4:RES:" + to_string(key_space[0]) + ':' + to_string(mid);
+        int csstatus = clientsend(send_data, client_sockaddr);
+        if(csstatus){
+          storage::peer_storage ps;
+          ps.peer_sockaddr = client_sockaddr;
+          ps.data_sent = send_data;
+          ps.response_needed = "C2";
+          request_list[ip_addr] = ps;
+        }
+      }
     } else if (comm.option == "C3") {
 
     }
     //C4: Set Keyspace
     //UGH change this
     else if (comm.option == "C4") {
+      request_list.erase(ip_addr);
+      cout << "c4" << '\n';
       int key_lower, key_higher;
-      //TODO replace with command struct
-      while (option[i] != '\n') {
-        if (option[i] == ':') {
-          key_lower ? key_higher = stoi(buff) : key_lower = stoi(buff);
-          buff = "";
-        }
-        else {
-          buff += option[i];
-        }
-        i++;
-      }
+      key_lower = stoi(comm.data[0]);
+      key_higher = stoi(comm.data[1]);
+      send_data += "C2:ACK:" + comm.data[1];
       this->set_keyspace(1, key_lower, key_higher);
+      clientsend(send_data, client_sockaddr);
     }
     else if (comm.option == "C5"){
       //C5: Put values
       //TODO replace with command struct
-      while (option[i] != '\n') {
-        if (option[i] == ':') {
-          //return keys to original caller
-          comm.data[(sizeof(comm.data)-1)] = buff;
-          buff = "";
-        }
-        else {
-          buff += option[i];
-        }
-        i++;
-      }
-    send_data += "N2";
-    for (size_t i = (sizeof(comm.data)-1); i >= 0; i--) {
-      int key = this->put_value(comm.data[i]);
-      send_data += key;
-      send_data += ':';
+      send_data += "N2:RES:";
+
+        size_t key = this->put_value(comm.data[0]);
+        send_data += to_string(key);
+
+      cout << "sent key: " << send_data << '\n';
+      clientsend(send_data, client_sockaddr);
     }
-    //Is this blocking? How does this work async?;
-    accept_socket.send(send_data);
+    else if (comm.option == "C6"){
+      string * sdp = &send_data;
+      send_data += "N3:RES:";
+      int status = this->get_value(stoi(comm.data[0]), sdp);
+      if (!status) {
+        perror("error in get value; not present");
+        //Call pass to peer
+      }
+      else {
+        cout << "sent value: " << send_data << '\n';
+        clientsend(send_data, client_sockaddr);
+      }
     }
     else {
       cout << "Unknown Command" << '\n';
     }
-}
+  }
 
-int Node::disconnect(){
- // call partner node send disconnect message
-}
+  int Node::disconnect(){
+    // call partner node send disconnect message
+  }
 
-// To be called in separate thread
-void* Node::add(void){
-  cout << "called add!" << '\n';
-  string data;
-  _client_status = client_socket.connect(_partner_address, _partner_port);
-
-  if (_client_status) {
-    //gets the key space it needs to operate in
-    //receive a connection message from the node
-    //this->set_keyspace(1, , );
-    bool sent;
-    sent = client_socket.send("C2");
-    if (!sent){
-      cout << "Error sending message." << '\n';
+  void* Node::add(void){
+    struct sockaddr_in server;
+    server.sin_port = htons(_partner_port);
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    string send_data = id + ':';
+    send_data += "C2:REQ";
+    int csstatus = clientsend(send_data, server);
+    if(csstatus){
+      storage::peer_storage ps;
+      ps.peer_sockaddr = server;
+      ps.data_sent = send_data;
+      ps.response_needed = "C1";
+      request_list[inet_ntoa(server.sin_addr)] = ps;
     }
-    client_socket.recv(data);
-    cout << "client: " << data << '\n';
-    this->remote_node_controller(data);
-    // Check if theres data to send, (how to do that between threads)
-    //How to keep socket open and then pass in more data to the thread?
-    client_socket.close();
-  }
-  else {
-    cout << "Could not bind to client port. Setting keyspace as all." << '\n';
-    this->set_keyspace(0,0,100);
-    return NULL;
-  }
   return NULL;
+}
+
+void* Node::ping(void){
+  std::map<string,storage::peer_storage>::iterator it;
+  while (true) {
+    /* code */
+  sleep(10);
+  for (it=request_list.begin(); it!=request_list.end(); ++it) {
+    auto ps = it->second;
+    clientsend(ps.data_sent, ps.peer_sockaddr);
+    cout << it->first << " pinged." << '\n';
+  }
+  }
+
+  return NULL;
+}
+
+int Node::clientsend(string data, sockaddr_in client_sockaddr){
+  int numbytes;
+  if ((numbytes = sendto(server_socket.get_sock_descriptor(), data.data(), data.size(), 0,
+  (sockaddr *) &client_sockaddr, sizeof(client_sockaddr))) == -1) {
+    perror("talker: sendto");
+    return -1;
+
+  }
+  cout << "clientsendmodule sent " << data << " to " << ntohs(client_sockaddr.sin_port) << '\n';
+  return 1;
 }
 
 void* Node::server(void){
-  struct pollfd fds[NUM_THREADS];
-  memset(fds, 0 , sizeof(fds));
-  fds[0].fd = server_socket.get_sock_descriptor();
-  fds[0].events = POLLIN;
-  char buf [ 1024 ];
 
-  //5 second polling rate
-  int timeout = (5 * 1000);
-  //number of sockets to poll
-  int nsock = 1;
-  int current_size;
-  int rc;
-/*  int test_server;
-  int opts;
-  opts = ( opts | O_NONBLOCK );
-  test_server = socket ( AF_INET, SOCK_STREAM, 0 );
-  opts =  fcntl ( test_server, F_GETFL );
-  fcntl ( test_server, F_SETFL, opts );
-*/  string data;
+  char buf [ 1024 ];
+  char *ip;
+  int port;
+  int senderr;
+  struct sockaddr_in their_addr;
+  socklen_t addr_len;
+  string data = "";
   bool run_server = true;
   while(run_server) {
     cout << "running server" << '\n';
-    //This only blocks until something happens on the monitored port, then it becomes available
-    sleep(1);
-    rc = poll(fds, nsock, timeout);
-    current_size = nsock;
-    for (size_t i = 0; i < current_size; i++) {
-      cout << fds[i].revents << '\n';
+    ::recvfrom(server_socket.get_sock_descriptor(), buf, 1024 -1 , 0,
+    (struct sockaddr *) &their_addr, &addr_len);
+    cout << buf << '\n';
+
+    //PEER COMMANDS
+    //TODO change
+    if (buf[3] == 'C'){
+      //TODO replace and standardize around string or char
+      data = buf;
+      cout << "data received from peer" << data << '\n';
+      this->remote_node_controller(data, their_addr);
     }
-    for (size_t i = 0; i < current_size; i++) {
-      if (rc == 0) {
-        cout << "nothing happened" << '\n';
-      }
-      else if (fds[0].revents & POLLIN){
-        cout << "accepting data" << '\n';
-        server_socket.accept(accept_socket);
-        accept_socket.set_non_blocking(true);
-        fds[nsock].fd = accept_socket.get_sock_descriptor();
-        fds[nsock].events = POLLIN;
-        nsock++;
-        cout << nsock << '\n';
-      }
-      else if(fds[1].revents & POLLIN) {
-        ::read ( fds[1].fd, buf, 1023);
-        cout << buf << '\n';
-      //  ::close(fds[1].fd);
-      }
-      else if(fds[1].revents){
-        cout << "non-pollin" <<'\n';
-        ::read ( fds[1].fd, buf, 1023);
-        cout << buf << '\n';
-      }
-        if (data[0] == 'C'){
-          cout << "data received" << '\n';
-          this->remote_node_controller(data);
-        }
-        else if (data == "close\n"){
-          cout << "shutting down" << '\n';
-          run_server = false;
-        }
-        else {
-          //Currently echoes data received. Parse for commands.
-          //cout << data << '\n';
-        }
-      data = "";
+    //USER COMMANDS
+    else if(buf[0] == 'U'){
+      cout << "data received from user" << '\n';
+
     }
+    else if (strcmp(buf, "close") == 0){
+      cout << "shutting down" << '\n';
+      run_server = false;
+    }
+    else {
+      cout << buf << '\n';
+    }
+
+
   }
   return NULL;
 }
 
-int Node::put_value(string val){
-  int hash;
-  int ord;
-  for (size_t i = 0; i < val.size(); i++) {
-    ord = val[i];
-    hash += ord;
-  }
-  hash = hash % 100;
-  if ((hash >= key_space[0]) || (hash <= key_space[1])) {
-    storage[hash] = val;
-    return hash;
+size_t Node::put_value(string val){
+  hash<string> hashf;
+  size_t key;
+  key = hashf(val);
+  key = key % 100;
+
+  if ((key >= key_space[0]) || (key <= key_space[1])) {
+    storage[key] = val;
+    return key;
   }
   else {
     //CHECK PEER LIST
@@ -252,10 +265,14 @@ int Node::put_value(string val){
   }
 }
 
-int Node::get_value(int key){
-
+int Node::get_value(size_t key, string * data){
+  map<size_t, string>::iterator iter = storage.find(key);
+  if ( storage.end() != iter ) {
+    *data += storage[key];
+    return 1;
+  }
+  return -1;
 }
-
 
 
 int Node::set_keyspace(int nodes = 0, int key_lower = 0, int key_higher = 100){
@@ -269,13 +286,14 @@ int Node::set_keyspace(int nodes = 0, int key_lower = 0, int key_higher = 100){
     key_space[1] = key_higher;
   }
   cout << "Key Space: " << key_space[0] << ':' << key_space[1] << '\n';
- // if connected to network, get the keyspace of the connected node
- // send message to that node that it now is only responsible for start -> mid-1
- // set self keyspace to mid -> end
+  return 1;
+  // if connected to network, get the keyspace of the connected node
+  // send message to that node that it now is only responsible for start -> mid-1
+  // set self keyspace to mid -> end
 }
 
 string Node::get_address(){
-// return current address
+  // return current address
 }
 
 int* Node::get_keyspace(){
@@ -291,20 +309,21 @@ string Node::current_time(){
   time_t now = std::time(0);
   return ctime(&now);
 }
+
 } // node
 
 //TODO (add command line arguments)
 int main(int argc, char *argv[])
 {
   if (argc < 2){
-   node::Node n;
-   n.run();
- } else {
-   int port = atoi(argv[1]);
-   string paddress = argv[2];
-   int pport = atoi(argv[3]);
-   node::Node n(port, paddress, pport);
-   n.run();
- }
-   return 0;
+    node::Node n;
+    n.run();
+  } else {
+    int port = atoi(argv[1]);
+    string paddress = argv[2];
+    int pport = atoi(argv[3]);
+    node::Node n(port, paddress, pport);
+    n.run();
+  }
+  return 0;
 }

@@ -23,7 +23,7 @@ Socket::~Socket() {
 
 bool Socket::create() {
   // Create a streaming TCP socket. Setting to 0 automatically chooses the proper protocol.
-  m_sock = socket ( AF_INET, SOCK_STREAM, 0 );
+  m_sock = socket ( AF_INET, SOCK_DGRAM, 0 );
 
   if ( ! is_valid() )
     return false;
