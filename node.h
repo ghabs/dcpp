@@ -29,7 +29,7 @@ namespace node {
     void* ping(void);
     void* server(void);
     int disconnect();
-    size_t put_value(string);
+    commands::ro<int> put_value(string);
     int get_value(size_t, string *);
     int* get_keyspace();
     int set_keyspace(int nodes, int key_lower, int key_higher);
@@ -51,7 +51,7 @@ namespace node {
     map<size_t, string> storage;
     int num_clients = 0;
     map<const string, storage::peer_storage> request_list;
-    map<char*, sockaddr_in> client_storage;
+    storage::peer_list peers;
   };
 } // node
 

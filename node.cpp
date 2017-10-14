@@ -77,6 +77,7 @@ namespace node {
     string buff = "";
     int i = 2;
     string ip_addr = inet_ntoa(client_sockaddr.sin_addr);
+    //TODO replace with hash table
     if (comm.option == "C1") {
       if (comm.reqres == "ACK") {
         request_list.erase(ip_addr);
@@ -86,7 +87,7 @@ namespace node {
         server.sin_port = htons(_partner_port);
         server.sin_family = AF_INET;
         server.sin_addr.s_addr = inet_addr("127.0.0.1");
-        send_data += "C2:REQ";
+        send_data += "nan:C2:REQ";
         int csstatus = clientsend(send_data, server);
         if(csstatus){
           storage::peer_storage ps;
@@ -100,11 +101,13 @@ namespace node {
     } else if (comm.option == "C2") {
       if (comm.reqres == "ACK") {
         this->set_keyspace(1, stoi(comm.data[0])+1, key_space[1]);
+        peers.lower.id = comm.id;
+        peers.lower.peer_sockaddr = client_sockaddr;
         request_list.erase(ip_addr);
       }
       else {
         int mid = key_space[1] / 2;
-        send_data += "C4:RES:" + to_string(key_space[0]) + ':' + to_string(mid);
+        send_data += "nan:C4:RES:" + to_string(key_space[0]) + ':' + to_string(mid);
         int csstatus = clientsend(send_data, client_sockaddr);
         if(csstatus){
           storage::peer_storage ps;
@@ -121,36 +124,73 @@ namespace node {
     //UGH change this
     else if (comm.option == "C4") {
       request_list.erase(ip_addr);
-      cout << "c4" << '\n';
       int key_lower, key_higher;
       key_lower = stoi(comm.data[0]);
       key_higher = stoi(comm.data[1]);
-      send_data += "C2:ACK:" + comm.data[1];
+      send_data += "nan:C2:ACK:" + comm.data[1];
       this->set_keyspace(1, key_lower, key_higher);
+      peers.higher.id = comm.id;
+      peers.higher.peer_sockaddr = client_sockaddr;
       clientsend(send_data, client_sockaddr);
     }
     else if (comm.option == "C5"){
       //C5: Put values
       //TODO replace with command struct
-      send_data += "N2:RES:";
-
-        size_t key = this->put_value(comm.data[0]);
-        send_data += to_string(key);
-
-      cout << "sent key: " << send_data << '\n';
-      clientsend(send_data, client_sockaddr);
+      commands::ro<int> key = this->put_value(comm.data[0]);
+      if (key.s < 0) {
+        //auto addr = inet_ntoa(client_sockaddr.sin_addr.s_addr);
+        //Add a check if Nan; if not then use original requester port
+        auto port = to_string(ntohs(client_sockaddr.sin_port));
+        send_data += port;
+        send_data += ":C5:RED:";
+        send_data += comm.data[0];
+        key.data ? clientsend(send_data, peers.higher.peer_sockaddr) :
+         clientsend(send_data, peers.lower.peer_sockaddr);
+      }
+      else {
+        send_data += "nan:N2:RES:";
+        send_data += to_string(key.data);
+        cout << "sent key: " << send_data << '\n';
+        if (comm.reqres == "RED") {
+          struct sockaddr_in server;
+          server.sin_port = htons(stoi(comm.org));
+          server.sin_family = AF_INET;
+          server.sin_addr.s_addr = inet_addr("127.0.0.1");
+            clientsend(send_data, server);
+        }
+        else{
+          clientsend(send_data, client_sockaddr);
+        }
+      }
     }
     else if (comm.option == "C6"){
       string * sdp = &send_data;
-      send_data += "N3:RES:";
-      int status = this->get_value(stoi(comm.data[0]), sdp);
-      if (!status) {
-        perror("error in get value; not present");
-        //Call pass to peer
+      auto port = to_string(ntohs(client_sockaddr.sin_port));
+
+      int key = stoi(comm.data[0]);
+      if (key < key_space[0]) {
+        send_data += port;
+        send_data += ":N3:RES:";
+        send_data += key;
+        clientsend(send_data, peers.lower.peer_sockaddr);
+      }
+      else if (key > key_space[1]) {
+        send_data += port;
+        send_data += ":N3:RES:";
+        send_data += key;
+        clientsend(send_data, peers.higher.peer_sockaddr);
       }
       else {
-        cout << "sent value: " << send_data << '\n';
-        clientsend(send_data, client_sockaddr);
+        send_data += "nan:N3:RES:";
+        int status = this->get_value(stoi(comm.data[0]), sdp);
+        if (!status) {
+          perror("error in get value; not present");
+          //Call pass to peer
+        }
+        else {
+          cout << "sent value: " << send_data << '\n';
+          clientsend(send_data, client_sockaddr);
+        }
       }
     }
     else {
@@ -168,7 +208,7 @@ namespace node {
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = inet_addr("127.0.0.1");
     string send_data = id + ':';
-    send_data += "C2:REQ";
+    send_data += "nan:C2:REQ";
     int csstatus = clientsend(send_data, server);
     if(csstatus){
       storage::peer_storage ps;
@@ -224,24 +264,16 @@ void* Node::server(void){
     cout << buf << '\n';
 
     //PEER COMMANDS
-    //TODO change
-    if (buf[3] == 'C'){
-      //TODO replace and standardize around string or char
-      data = buf;
-      cout << "data received from peer" << data << '\n';
-      this->remote_node_controller(data, their_addr);
-    }
-    //USER COMMANDS
-    else if(buf[0] == 'U'){
-      cout << "data received from user" << '\n';
-
-    }
-    else if (strcmp(buf, "close") == 0){
+    //TODO change to commands.h
+    if (strcmp(buf, "close") == 0){
       cout << "shutting down" << '\n';
       run_server = false;
     }
     else {
-      cout << buf << '\n';
+      //TODO replace and standardize around string or char
+      data = buf;
+      cout << "data received from peer" << data << '\n';
+      this->remote_node_controller(data, their_addr);
     }
 
 
@@ -249,19 +281,30 @@ void* Node::server(void){
   return NULL;
 }
 
-size_t Node::put_value(string val){
+commands::ro<int> Node::put_value(string val){
+  commands::ro<int> obj;
   hash<string> hashf;
   size_t key;
   key = hashf(val);
   key = key % 100;
+  cout << "key " << key << '\n';
+  if (key < key_space[0]) {
+    obj.s = -1;
+    obj.data = 0;
+    cout << "s " << obj.s << '\n';
 
-  if ((key >= key_space[0]) || (key <= key_space[1])) {
-    storage[key] = val;
-    return key;
+    return obj;
+  }
+  else if (key > key_space[1]) {
+    obj.s = -1;
+    obj.data = 1;
+    return obj;
   }
   else {
-    //CHECK PEER LIST
-    return -1;
+    storage[key] = val;
+    obj.s = 1;
+    obj.data = key;
+    return obj;
   }
 }
 

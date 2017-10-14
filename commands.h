@@ -17,9 +17,13 @@ namespace commands {
       for (string each; getline(split, each, ':'); i++){
         if (i == 0) {
           id = each;
-        } else if (i == 1) {
+        }
+        else if (i == 1) {
+          org = each;
+        }
+        else if (i == 2) {
           option = each;
-        } else if (i == 2) {
+        } else if (i == 3) {
           reqres = each;
         }
         else {
@@ -30,9 +34,15 @@ namespace commands {
       return 1;
     }
   string id;
+  string org;
   string option;
   string reqres;
   vector<string> data;
+  };
+  template<typename a>
+  struct ro {
+    int s;
+    a data;
   };
 } //namespace commands
 

@@ -14,6 +14,15 @@ struct peer_storage {
   std::string response_needed;
 };
 
+struct peer {
+  std::string id;
+  sockaddr_in peer_sockaddr;
+};
+
+struct peer_list {
+  peer lower;
+  peer higher;
+};
 }//namespace storage;
 
 #endif
