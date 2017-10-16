@@ -44,6 +44,12 @@ Boost_SYSTEM_LIBRARY_DEBUG:FILEPATH=/usr/local/lib/libboost_system.so
 //Boost system library (release)
 Boost_SYSTEM_LIBRARY_RELEASE:FILEPATH=/usr/local/lib/libboost_system.so
 
+//Boost unit_test_framework library (debug)
+Boost_UNIT_TEST_FRAMEWORK_LIBRARY_DEBUG:FILEPATH=/usr/local/lib/libboost_unit_test_framework.so
+
+//Boost unit_test_framework library (release)
+Boost_UNIT_TEST_FRAMEWORK_LIBRARY_RELEASE:FILEPATH=/usr/local/lib/libboost_unit_test_framework.so
+
 //Path to a program.
 CMAKE_AR:FILEPATH=/usr/bin/ar
 
@@ -221,6 +227,10 @@ Boost_LIBRARY_DIR_RELEASE-ADVANCED:INTERNAL=1
 Boost_SYSTEM_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: Boost_SYSTEM_LIBRARY_RELEASE
 Boost_SYSTEM_LIBRARY_RELEASE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Boost_UNIT_TEST_FRAMEWORK_LIBRARY_DEBUG
+Boost_UNIT_TEST_FRAMEWORK_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Boost_UNIT_TEST_FRAMEWORK_LIBRARY_RELEASE
+Boost_UNIT_TEST_FRAMEWORK_LIBRARY_RELEASE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_AR
 CMAKE_AR-ADVANCED:INTERNAL=1
 //This is the directory where this CMakeCache.txt was created
@@ -343,7 +353,7 @@ CMAKE_UNAME:INTERNAL=/bin/uname
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 //Components requested for this build tree.
-_Boost_COMPONENTS_SEARCHED:INTERNAL=asio;filesystem;system
+_Boost_COMPONENTS_SEARCHED:INTERNAL=asio;filesystem;system;unit_test_framework
 //Last used Boost_INCLUDE_DIR value.
 _Boost_INCLUDE_DIR_LAST:INTERNAL=/home/ghabs/bin/boost_1_61_0
 //Last used Boost_LIBRARY_DIR_DEBUG value.

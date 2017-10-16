@@ -14,7 +14,7 @@
 #include <typeinfo>
 #include <unordered_map>
 
-#define NUM_THREADS     5
+#define NUM_THREADS 5
 
 #define MYPORT "4950"    // the port users will be connecting to
 
@@ -43,6 +43,7 @@ namespace node {
   }
   Node::~Node() {
     //call disconnect function
+
     //reallocate storage
   }
 
@@ -100,10 +101,12 @@ namespace node {
 
     } else if (comm.option == "C2") {
       if (comm.reqres == "ACK") {
+        send_data += "nan:C5:REQ:";
         this->set_keyspace(1, stoi(comm.data[0])+1, key_space[1]);
         peers.lower.id = comm.id;
         peers.lower.peer_sockaddr = client_sockaddr;
         request_list.erase(ip_addr);
+        this->reshuffle(send_data, client_sockaddr);
       }
       else {
         int mid = key_space[1] / 2;
@@ -136,32 +139,34 @@ namespace node {
     else if (comm.option == "C5"){
       //C5: Put values
       //TODO replace with command struct
-      commands::ro<int> key = this->put_value(comm.data[0]);
-      if (key.s < 0) {
-        //auto addr = inet_ntoa(client_sockaddr.sin_addr.s_addr);
-        //Add a check if Nan; if not then use original requester port
-        auto port = to_string(ntohs(client_sockaddr.sin_port));
-        send_data += port;
-        send_data += ":C5:RED:";
-        send_data += comm.data[0];
-        key.data ? clientsend(send_data, peers.higher.peer_sockaddr) :
-         clientsend(send_data, peers.lower.peer_sockaddr);
-      }
-      else {
-        send_data += "nan:N2:RES:";
-        send_data += to_string(key.data);
-        cout << "sent key: " << send_data << '\n';
-        if (comm.reqres == "RED") {
-          struct sockaddr_in server;
-          server.sin_port = htons(stoi(comm.org));
-          server.sin_family = AF_INET;
-          server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    //  for (auto data : comm.data){
+        commands::ro<int> key = this->put_value(comm.data[0]);
+        if (key.s < 0) {
+          //auto addr = inet_ntoa(client_sockaddr.sin_addr.s_addr);
+          //Add a check if Nan; if not then use original requester port
+          auto port = to_string(ntohs(client_sockaddr.sin_port));
+          send_data += port;
+          send_data += ":C5:RED:";
+          send_data += comm.data[0];
+          key.data ? clientsend(send_data, peers.higher.peer_sockaddr) :
+          clientsend(send_data, peers.lower.peer_sockaddr);
+        }
+        else {
+          send_data += "nan:N2:RES:";
+          send_data += to_string(key.data);
+          cout << "sent key: " << send_data << '\n';
+          if (comm.reqres == "RED") {
+            struct sockaddr_in server;
+            server.sin_port = htons(stoi(comm.org));
+            server.sin_family = AF_INET;
+            server.sin_addr.s_addr = inet_addr("127.0.0.1");
             clientsend(send_data, server);
+          }
+          else {
+            clientsend(send_data, client_sockaddr);
+          }
         }
-        else{
-          clientsend(send_data, client_sockaddr);
-        }
-      }
+      //}
     }
     else if (comm.option == "C6"){
       string * sdp = &send_data;
@@ -200,6 +205,10 @@ namespace node {
 
   int Node::disconnect(){
     // call partner node send disconnect message
+    // Send disconnect call to partner node
+    // TODO: store in internal state whether or not in disconnect mode
+    // TODO: Build an internal state object
+    // Once keyspace has been updated with lower & higher, run disconnect to update
   }
 
   void* Node::add(void){
@@ -224,11 +233,15 @@ void* Node::ping(void){
   std::map<string,storage::peer_storage>::iterator it;
   while (true) {
     /* code */
-  sleep(10);
+  sleep(1);
   for (it=request_list.begin(); it!=request_list.end(); ++it) {
     auto ps = it->second;
     clientsend(ps.data_sent, ps.peer_sockaddr);
     cout << it->first << " pinged." << '\n';
+    request_list[it->first].ping_count++;
+    if (ps.ping_count > 1){
+      request_list.erase(it->first);
+    }
   }
   }
 
@@ -272,7 +285,7 @@ void* Node::server(void){
     else {
       //TODO replace and standardize around string or char
       data = buf;
-      cout << "data received from peer" << data << '\n';
+      cout << "data received from peer " << data << '\n';
       this->remote_node_controller(data, their_addr);
     }
 
@@ -308,6 +321,7 @@ commands::ro<int> Node::put_value(string val){
   }
 }
 
+//TODO change to ro instead of int
 int Node::get_value(size_t key, string * data){
   map<size_t, string>::iterator iter = storage.find(key);
   if ( storage.end() != iter ) {
@@ -337,6 +351,29 @@ int Node::set_keyspace(int nodes = 0, int key_lower = 0, int key_higher = 100){
 
 string Node::get_address(){
   // return current address
+}
+
+int Node::reshuffle(string send_data, sockaddr_in new_peer_sockaddr) {
+  //Go through internal storage
+  //Move everything that is no longer in this node over to the new node
+
+  string sd = "";
+  for (auto& kv : storage) {
+    if (kv.first < key_space[0] || kv.first > key_space[1]) {
+      //Change to not a pointer?
+      cout << kv.first << '\n';
+      this->get_value(kv.first, &sd);
+    }
+    //Decide if going to erase from memory
+  }
+  cout << "reshuffle " << sd << '\n';
+  if (sd == ""){
+    return -1;
+  }
+  send_data += sd;
+  //TODO client send should be separate call not intermixed in function
+  clientsend(send_data, new_peer_sockaddr);
+  return 1;
 }
 
 int* Node::get_keyspace(){

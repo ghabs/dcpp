@@ -12,6 +12,7 @@ struct peer_storage {
   std::string data_sent;
   //TODO change to be map for multiple responses needed
   std::string response_needed;
+  int ping_count = 0;
 };
 
 struct peer {

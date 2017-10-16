@@ -7,9 +7,10 @@ cmake_minimum_required(VERSION 2.8.11)
 # Name the project after the exercise
 project(${exercise} CXX)
 
-find_package(Boost 1.59 REQUIRED COMPONENTS system filesystem)
+#if(BOOST_CUSTOM_ROOT) set(BOOST_ROOT ${BOOST_CUSTOM_ROOT}) endif()
+#find_package(Boost 1.59 REQUIRED COMPONENTS system filesystem unit_test_framework)
 
-include_directories(${Boost_INCLUDE_DIRS})
+#include_directories(${Boost_INCLUDE_DIRS})
 
 # Name the project after the exercise
 project(${exercise} CXX)
@@ -34,5 +35,5 @@ add_executable(${exercise} ${exercise_cpp} ${file}.h)
 #TODO does this need to be added as library or just included?
 add_library(socket "socket/socket.cpp" "socket/socket.h")
 
-target_link_libraries(${exercise} ${Boost_LIBRARIES})
+#target_link_libraries(${exercise} ${Boost_LIBRARIES})
 target_link_libraries(${exercise} socket)

@@ -6,5 +6,5 @@ CXX_FLAGS = -std=c++11 -pthread
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/ghabs/bin/boost_1_61_0 
+CXX_INCLUDES = 
 

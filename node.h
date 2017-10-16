@@ -34,6 +34,7 @@ namespace node {
     int* get_keyspace();
     int set_keyspace(int nodes, int key_lower, int key_higher);
     int clientsend(string data, sockaddr_in client_sockaddr);
+    int reshuffle(string send_data, sockaddr_in new_peer_sockaddr);
     string current_time();
     string print_partner();
   private:
