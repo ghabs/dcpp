@@ -7,10 +7,9 @@ cmake_minimum_required(VERSION 2.8.11)
 # Name the project after the exercise
 project(${exercise} CXX)
 
-#if(BOOST_CUSTOM_ROOT) set(BOOST_ROOT ${BOOST_CUSTOM_ROOT}) endif()
-#find_package(Boost 1.59 REQUIRED COMPONENTS system filesystem unit_test_framework)
+find_package(Boost 1.59 REQUIRED COMPONENTS system filesystem unit_test_framework)
 
-#include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS})
 
 # Name the project after the exercise
 project(${exercise} CXX)
@@ -20,7 +19,7 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "(GNU|Clang)")
     set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
 endif()
 
-# Get a source filename from the exercise name by replacing -'s with _'s
+# Get a source filename from the names by replacing -'s with _'s
 string(REPLACE "-" "_" file ${exercise})
 
 # Implementation could be only a header
@@ -32,8 +31,13 @@ endif()
 
 # Build executable from sources and headers
 add_executable(${exercise} ${exercise_cpp} ${file}.h)
+add_executable(nodetests "tests/node_tests.cpp")
+
 #TODO does this need to be added as library or just included?
 add_library(socket "socket/socket.cpp" "socket/socket.h")
 
-#target_link_libraries(${exercise} ${Boost_LIBRARIES})
+target_link_libraries(${exercise} ${Boost_LIBRARIES})
+target_link_libraries(nodetests ${Boost_LIBRARIES})
+
+
 target_link_libraries(${exercise} socket)

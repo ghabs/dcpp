@@ -111,19 +111,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named socket
-
-# Build rule for target.
-socket: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 socket
-.PHONY : socket
-
-# fast build rule for target.
-socket/fast:
-	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/build
-.PHONY : socket/fast
-
-#=============================================================================
 # Target rules for targets named node
 
 # Build rule for target.
@@ -135,6 +122,32 @@ node: cmake_check_build_system
 node/fast:
 	$(MAKE) -f CMakeFiles/node.dir/build.make CMakeFiles/node.dir/build
 .PHONY : node/fast
+
+#=============================================================================
+# Target rules for targets named nodetests
+
+# Build rule for target.
+nodetests: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nodetests
+.PHONY : nodetests
+
+# fast build rule for target.
+nodetests/fast:
+	$(MAKE) -f CMakeFiles/nodetests.dir/build.make CMakeFiles/nodetests.dir/build
+.PHONY : nodetests/fast
+
+#=============================================================================
+# Target rules for targets named socket
+
+# Build rule for target.
+socket: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 socket
+.PHONY : socket
+
+# fast build rule for target.
+socket/fast:
+	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/build
+.PHONY : socket/fast
 
 node.o: node.cpp.o
 
@@ -190,6 +203,33 @@ socket/socket.cpp.s:
 	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/socket/socket.cpp.s
 .PHONY : socket/socket.cpp.s
 
+tests/node_tests.o: tests/node_tests.cpp.o
+
+.PHONY : tests/node_tests.o
+
+# target to build an object file
+tests/node_tests.cpp.o:
+	$(MAKE) -f CMakeFiles/nodetests.dir/build.make CMakeFiles/nodetests.dir/tests/node_tests.cpp.o
+.PHONY : tests/node_tests.cpp.o
+
+tests/node_tests.i: tests/node_tests.cpp.i
+
+.PHONY : tests/node_tests.i
+
+# target to preprocess a source file
+tests/node_tests.cpp.i:
+	$(MAKE) -f CMakeFiles/nodetests.dir/build.make CMakeFiles/nodetests.dir/tests/node_tests.cpp.i
+.PHONY : tests/node_tests.cpp.i
+
+tests/node_tests.s: tests/node_tests.cpp.s
+
+.PHONY : tests/node_tests.s
+
+# target to generate assembly for a file
+tests/node_tests.cpp.s:
+	$(MAKE) -f CMakeFiles/nodetests.dir/build.make CMakeFiles/nodetests.dir/tests/node_tests.cpp.s
+.PHONY : tests/node_tests.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -197,15 +237,19 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... edit_cache"
-	@echo "... socket"
 	@echo "... node"
+	@echo "... nodetests"
+	@echo "... socket"
+	@echo "... edit_cache"
 	@echo "... node.o"
 	@echo "... node.i"
 	@echo "... node.s"
 	@echo "... socket/socket.o"
 	@echo "... socket/socket.i"
 	@echo "... socket/socket.s"
+	@echo "... tests/node_tests.o"
+	@echo "... tests/node_tests.i"
+	@echo "... tests/node_tests.s"
 .PHONY : help
 
 

@@ -60,43 +60,6 @@ CMAKE_SOURCE_DIR = /home/ghabs/Programming/cpp/node
 CMAKE_BINARY_DIR = /home/ghabs/Programming/cpp/node/build
 
 #=============================================================================
-# Target rules for target CMakeFiles/socket.dir
-
-# All Build rule for target.
-CMakeFiles/socket.dir/all:
-	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/depend
-	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/ghabs/Programming/cpp/node/build/CMakeFiles --progress-num=3,4 "Built target socket"
-.PHONY : CMakeFiles/socket.dir/all
-
-# Include target in all.
-all: CMakeFiles/socket.dir/all
-
-.PHONY : all
-
-# Build rule for subdir invocation for target.
-CMakeFiles/socket.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/ghabs/Programming/cpp/node/build/CMakeFiles 2
-	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/socket.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/ghabs/Programming/cpp/node/build/CMakeFiles 0
-.PHONY : CMakeFiles/socket.dir/rule
-
-# Convenience name for target.
-socket: CMakeFiles/socket.dir/rule
-
-.PHONY : socket
-
-# clean rule for target.
-CMakeFiles/socket.dir/clean:
-	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/clean
-.PHONY : CMakeFiles/socket.dir/clean
-
-# clean rule for target.
-clean: CMakeFiles/socket.dir/clean
-
-.PHONY : clean
-
-#=============================================================================
 # Target rules for target CMakeFiles/node.dir
 
 # All Build rule for target.
@@ -130,6 +93,80 @@ CMakeFiles/node.dir/clean:
 
 # clean rule for target.
 clean: CMakeFiles/node.dir/clean
+
+.PHONY : clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/nodetests.dir
+
+# All Build rule for target.
+CMakeFiles/nodetests.dir/all:
+	$(MAKE) -f CMakeFiles/nodetests.dir/build.make CMakeFiles/nodetests.dir/depend
+	$(MAKE) -f CMakeFiles/nodetests.dir/build.make CMakeFiles/nodetests.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/ghabs/Programming/cpp/node/build/CMakeFiles --progress-num=3,4 "Built target nodetests"
+.PHONY : CMakeFiles/nodetests.dir/all
+
+# Include target in all.
+all: CMakeFiles/nodetests.dir/all
+
+.PHONY : all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/nodetests.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ghabs/Programming/cpp/node/build/CMakeFiles 2
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/nodetests.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ghabs/Programming/cpp/node/build/CMakeFiles 0
+.PHONY : CMakeFiles/nodetests.dir/rule
+
+# Convenience name for target.
+nodetests: CMakeFiles/nodetests.dir/rule
+
+.PHONY : nodetests
+
+# clean rule for target.
+CMakeFiles/nodetests.dir/clean:
+	$(MAKE) -f CMakeFiles/nodetests.dir/build.make CMakeFiles/nodetests.dir/clean
+.PHONY : CMakeFiles/nodetests.dir/clean
+
+# clean rule for target.
+clean: CMakeFiles/nodetests.dir/clean
+
+.PHONY : clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/socket.dir
+
+# All Build rule for target.
+CMakeFiles/socket.dir/all:
+	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/depend
+	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/ghabs/Programming/cpp/node/build/CMakeFiles --progress-num=5,6 "Built target socket"
+.PHONY : CMakeFiles/socket.dir/all
+
+# Include target in all.
+all: CMakeFiles/socket.dir/all
+
+.PHONY : all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/socket.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ghabs/Programming/cpp/node/build/CMakeFiles 2
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/socket.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ghabs/Programming/cpp/node/build/CMakeFiles 0
+.PHONY : CMakeFiles/socket.dir/rule
+
+# Convenience name for target.
+socket: CMakeFiles/socket.dir/rule
+
+.PHONY : socket
+
+# clean rule for target.
+CMakeFiles/socket.dir/clean:
+	$(MAKE) -f CMakeFiles/socket.dir/build.make CMakeFiles/socket.dir/clean
+.PHONY : CMakeFiles/socket.dir/clean
+
+# clean rule for target.
+clean: CMakeFiles/socket.dir/clean
 
 .PHONY : clean
 

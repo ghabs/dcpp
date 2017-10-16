@@ -19,6 +19,7 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/opt/cmake/share/cmake-3.9/Modules/Compiler/CMakeCommonCompilerMacros.cmake"
   "/opt/cmake/share/cmake-3.9/Modules/Compiler/GNU-CXX.cmake"
   "/opt/cmake/share/cmake-3.9/Modules/Compiler/GNU.cmake"
+  "/opt/cmake/share/cmake-3.9/Modules/FindBoost.cmake"
   "/opt/cmake/share/cmake-3.9/Modules/Platform/Linux-GNU-CXX.cmake"
   "/opt/cmake/share/cmake-3.9/Modules/Platform/Linux-GNU.cmake"
   "/opt/cmake/share/cmake-3.9/Modules/Platform/Linux.cmake"
@@ -38,6 +39,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
-  "CMakeFiles/socket.dir/DependInfo.cmake"
   "CMakeFiles/node.dir/DependInfo.cmake"
+  "CMakeFiles/nodetests.dir/DependInfo.cmake"
+  "CMakeFiles/socket.dir/DependInfo.cmake"
   )
