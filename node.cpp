@@ -28,7 +28,6 @@ namespace node {
 
     server_socket.create();
     this->set_keyspace(0,0,100);
-
     //TODO(goldhaber): throw exception
     if (!server_socket.bind(port))
     {
@@ -37,8 +36,6 @@ namespace node {
     else {
       cout << "Node has bound to port " << port << '\n';
     }
-
-
   }
   Node::~Node() {
     //call disconnect function
@@ -63,7 +60,6 @@ namespace node {
     commands::Commands comm(option);
     cout << "option " << comm.option << '\n';
     string send_data = id + ':';
-    int i = 2;
     string ip_addr = inet_ntoa(client_sockaddr.sin_addr);
     //TODO replace with hash table
     if (comm.option == "C1") {
@@ -111,7 +107,6 @@ namespace node {
     }
     else if (comm.option == "C5"){
       //C5: Put values
-      //TODO replace with command struct
       //  for (auto data : comm.data){
       commands::ro<int> key = this->put_value(comm.data[0]);
       if (key.s < 0) {
@@ -176,8 +171,6 @@ namespace node {
     }
   }
 
-
-
   void Node::add(void){
     struct sockaddr_in server;
     server.sin_port = htons(_partner_port);
@@ -206,7 +199,6 @@ namespace node {
         }
       }
     }
-
     return NULL;
   }
 
