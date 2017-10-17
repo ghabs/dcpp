@@ -61,6 +61,7 @@ BOOST_AUTO_TEST_CASE(command_struct)
   BOOST_CHECK(commands.reqres == "REQ");
   BOOST_CHECK(commands.data[0] == "TEST");
   BOOST_CHECK(commands.data[1] == "TWO");
+  BOOST_CHECK(commands.to_string() == "1:NAN:C1:REQ:TEST:TWO");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

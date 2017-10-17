@@ -58,8 +58,11 @@ namespace node {
     //call other internal functions
     //send to other functions
     commands::Commands comm(option);
+    commands::Commands sd(id);
     cout << "option " << comm.option << '\n';
     string send_data = id + ':';
+    sd.ori = "NAN";
+    sd.reqres = "REQ";
     string ip_addr = inet_ntoa(client_sockaddr.sin_addr);
     //TODO replace with hash table
     if (comm.option == "C1") {
@@ -68,6 +71,7 @@ namespace node {
       }
     } else if (comm.option == "C2") {
       if (comm.reqres == "ACK") {
+        sd.option = "C5";
         send_data += "NAN:C5:REQ:";
         this->set_keyspace(1, stoi(comm.data[0])+1, key_space[1]);
         peers.lower.id = comm.id;
@@ -83,6 +87,10 @@ namespace node {
       }
       else {
         int mid = key_space[1] / 2;
+        sd.option = "C4";
+        sd.reqres = "RES";
+        sd.data.push_back(to_string(key_space[0]));
+        sd.data.push_back(to_string(mid));
         send_data += "NAN:C4:RES:" + to_string(key_space[0]) + ':' + to_string(mid);
         int csstatus = client_send(send_data, client_sockaddr);
         if(csstatus){

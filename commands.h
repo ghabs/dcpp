@@ -7,10 +7,11 @@
 
 using namespace std;
 namespace commands {
+  //TODO: refactor to parent child classes
   class Commands {
   public:
     //TODO(): ADD Validation
-    Commands(string message) { parse(message);}
+    Commands(string message = "") { parse(message);}
     int parse(string message) {
       istringstream split(message);
       string item;
@@ -38,6 +39,13 @@ namespace commands {
   string option;
   string reqres;
   vector<string> data;
+  string to_string() {
+    string sd = id + ':' + ori + ':' + option + ':' + reqres;
+    for (string v: data){
+      sd += (':' + v);
+    }
+    return sd;
+  };
   };
   template<typename a>
   struct ro {

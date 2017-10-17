@@ -63,6 +63,8 @@ node.h
 /home/ghabs/Programming/cpp/node/node.h
 string
 -
+pthread.h
+-
 
 /home/ghabs/Programming/cpp/node/socket/socket.h
 sys/types.h

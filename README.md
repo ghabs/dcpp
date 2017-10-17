@@ -24,11 +24,3 @@ C6: Get values
 C7: Current Time
 C8:
 C9: Ack
-
-Notifications:
-N1:
-N2:
-N3:
-N4:
-N5: Keys
-N7: Current Time
