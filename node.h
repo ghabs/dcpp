@@ -16,27 +16,6 @@
 using namespace std;
 namespace node {
   class Node {
-  public:
-    Node(int port, string partner_address, int partner_port);
-    ~Node();
-    int run();
-    void remote_node_controller(const string option, sockaddr_in client_sockaddr);
-    static void* callAddFunction(void *arg) { return ((Node*)arg)->add(); }
-    static void* callPingFunction(void *arg) { return ((Node*)arg)->ping(); }
-    static void* callServerFunction(void *arg) { return ((Node*)arg)->server(); }
-    void* add(void);
-    void* ping(void);
-    void* server(void);
-    int disconnect();
-    commands::ro<int> put_value(string);
-    commands::ro<string> get_value(size_t);
-    int* get_keyspace();
-    int set_keyspace(int nodes, int key_lower, int key_higher);
-    int client_send(string data, sockaddr_in client_sockaddr);
-    commands::ro<string> put_request_list(string send_data, sockaddr_in client_sockaddr, string response);
-    commands::ro<string> reshuffle();
-    int status_socket();
-    string current_time();
   private:
     const string id = to_string(rand() % 100);
     string _address;
@@ -50,6 +29,26 @@ namespace node {
     int num_clients = 0;
     map<const string, storage::peer_storage> request_list;
     storage::peer_list peers;
+  public:
+    Node(int port, string partner_address, int partner_port);
+    ~Node();
+    int run();
+    void remote_node_controller(const string option, sockaddr_in client_sockaddr);
+    static void* callPingFunction(void *arg) { return ((Node*)arg)->ping(); }
+    static void* callServerFunction(void *arg) { return ((Node*)arg)->server(); }
+    void add(void);
+    void* ping(void);
+    void* server(void);
+    int disconnect();
+    commands::ro<int> put_value(string);
+    commands::ro<string> get_value(size_t);
+    int* get_keyspace();
+    int set_keyspace(int nodes, int key_lower, int key_higher);
+    int client_send(string data, sockaddr_in client_sockaddr);
+    commands::ro<string> put_request_list(string send_data, sockaddr_in client_sockaddr, string response);
+    commands::ro<string> reshuffle();
+    int status_socket();
+    string current_time();
   };
 } // node
 

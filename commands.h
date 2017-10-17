@@ -9,6 +9,7 @@ using namespace std;
 namespace commands {
   class Commands {
   public:
+    //TODO(): ADD Validation
     Commands(string message) { parse(message);}
     int parse(string message) {
       istringstream split(message);
@@ -30,7 +31,6 @@ namespace commands {
           data.push_back(each);
         }
       };
-
       return 1;
     }
   string id;

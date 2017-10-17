@@ -47,14 +47,11 @@ namespace node {
   }
 
   int Node::run(){
-
     pthread_t threads[ NUM_THREADS ];
-    int result_code;
-    result_code = pthread_create(&threads[0], NULL, Node::callPingFunction, this);
+    pthread_create(&threads[0], NULL, Node::callPingFunction, this);
     pthread_detach(threads[0]);
-    result_code = pthread_create(&threads[1], NULL, Node::callServerFunction, this);
+    pthread_create(&threads[1], NULL, Node::callServerFunction, this);
     pthread_join(threads[1], NULL);
-
     return 0;
   }
 
@@ -72,21 +69,6 @@ namespace node {
     if (comm.option == "C1") {
       if (comm.reqres == "ACK") {
         request_list.erase(ip_addr);
-      }
-      else {
-        struct sockaddr_in server;
-        server.sin_port = htons(_partner_port);
-        server.sin_family = AF_INET;
-        server.sin_addr.s_addr = inet_addr("127.0.0.1");
-        send_data += "NAN:C2:REQ";
-        int csstatus = client_send(send_data, server);
-        if(csstatus){
-          storage::peer_storage ps;
-          ps.peer_sockaddr = client_sockaddr;
-          ps.data_sent = send_data;
-          ps.response_needed = "C1";
-          request_list[ip_addr] = ps;
-        }
       }
     } else if (comm.option == "C2") {
       if (comm.reqres == "ACK") {
@@ -108,11 +90,7 @@ namespace node {
         send_data += "NAN:C4:RES:" + to_string(key_space[0]) + ':' + to_string(mid);
         int csstatus = client_send(send_data, client_sockaddr);
         if(csstatus){
-          storage::peer_storage ps;
-          ps.peer_sockaddr = client_sockaddr;
-          ps.data_sent = send_data;
-          ps.response_needed = "C2";
-          request_list[ip_addr] = ps;
+          put_request_list(send_data, client_sockaddr, "C2");
         }
       }
     } else if (comm.option == "C3") {
@@ -198,15 +176,9 @@ namespace node {
     }
   }
 
-  int Node::disconnect(){
-    // call partner node send disconnect message
-    // Send disconnect call to partner node
-    // TODO: store in internal state whether or not in disconnect mode
-    // TODO: Build an internal state object
-    // Once keyspace has been updated with lower & higher, run disconnect to update
-  }
 
-  void* Node::add(void){
+
+  void Node::add(void){
     struct sockaddr_in server;
     server.sin_port = htons(_partner_port);
     server.sin_family = AF_INET;
@@ -215,11 +187,7 @@ namespace node {
     send_data += "NAN:C2:REQ";
     int csstatus = client_send(send_data, server);
     if(csstatus){
-      storage::peer_storage ps;
-      ps.peer_sockaddr = server;
-      ps.data_sent = send_data;
-      ps.response_needed = "C1";
-      request_list[inet_ntoa(server.sin_addr)] = ps;
+      this->put_request_list(send_data, server, "C1");
     }
   }
 
@@ -269,11 +237,7 @@ namespace node {
   }
 
   void* Node::server(void){
-
     char buf [ 1024 ];
-    char *ip;
-    int port;
-    int senderr;
     struct sockaddr_in their_addr;
     socklen_t addr_len;
     string data = "";
@@ -284,7 +248,6 @@ namespace node {
       ::recvfrom(server_socket.get_sock_descriptor(), buf, 1024 -1 , 0,
       (struct sockaddr *) &their_addr, &addr_len);
       cout << buf << '\n';
-
       //PEER COMMANDS
       //TODO change to commands.h
       if (strcmp(buf, "close") == 0){
@@ -297,10 +260,17 @@ namespace node {
         cout << "data received from peer " << data << '\n';
         this->remote_node_controller(data, their_addr);
       }
-
-
     }
     return NULL;
+  }
+
+  int Node::disconnect(){
+    // call partner node send disconnect message
+    // Send disconnect call to partner node
+    // TODO: store in internal state whether or not in disconnect mode
+    // TODO: Build an internal state object
+    // Once keyspace has been updated with lower & higher, run disconnect to update
+    return -1;
   }
 
   commands::ro<int> Node::put_value(string val){
