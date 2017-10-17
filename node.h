@@ -19,7 +19,6 @@ namespace node {
   public:
     Node(int port, string partner_address, int partner_port);
     ~Node();
-    string get_address();
     int run();
     void remote_node_controller(const string option, sockaddr_in client_sockaddr);
     static void* callAddFunction(void *arg) { return ((Node*)arg)->add(); }
@@ -30,13 +29,14 @@ namespace node {
     void* server(void);
     int disconnect();
     commands::ro<int> put_value(string);
-    int get_value(size_t, string *);
+    commands::ro<string> get_value(size_t);
     int* get_keyspace();
     int set_keyspace(int nodes, int key_lower, int key_higher);
-    int clientsend(string data, sockaddr_in client_sockaddr);
-    int reshuffle(string send_data, sockaddr_in new_peer_sockaddr);
+    int client_send(string data, sockaddr_in client_sockaddr);
+    commands::ro<string> put_request_list(string send_data, sockaddr_in client_sockaddr, string response);
+    commands::ro<string> reshuffle();
+    int status_socket();
     string current_time();
-    string print_partner();
   private:
     const string id = to_string(rand() % 100);
     string _address;
@@ -44,9 +44,6 @@ namespace node {
     string _partner_address;
     int _partner_port;
     Socket server_socket;
-    //Change to allow many sockets to be created, stored in array
-    Socket accept_socket;
-    Socket client_socket;
     bool _client_status;
     int key_space[2];
     map<size_t, string> storage;

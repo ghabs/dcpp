@@ -39,7 +39,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
-  "CMakeFiles/node.dir/DependInfo.cmake"
   "CMakeFiles/nodetests.dir/DependInfo.cmake"
+  "CMakeFiles/node.dir/DependInfo.cmake"
   "CMakeFiles/socket.dir/DependInfo.cmake"
   )

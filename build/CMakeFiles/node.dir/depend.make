@@ -7,3 +7,9 @@ CMakeFiles/node.dir/node.cpp.o: ../node.h
 CMakeFiles/node.dir/node.cpp.o: ../socket/socket.h
 CMakeFiles/node.dir/node.cpp.o: ../storage/storage.h
 
+CMakeFiles/node.dir/server.cpp.o: ../commands.h
+CMakeFiles/node.dir/server.cpp.o: ../node.h
+CMakeFiles/node.dir/server.cpp.o: ../server.cpp
+CMakeFiles/node.dir/server.cpp.o: ../socket/socket.h
+CMakeFiles/node.dir/server.cpp.o: ../storage/storage.h
+

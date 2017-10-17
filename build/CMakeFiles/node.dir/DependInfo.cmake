@@ -5,6 +5,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
   "/home/ghabs/Programming/cpp/node/node.cpp" "/home/ghabs/Programming/cpp/node/build/CMakeFiles/node.dir/node.cpp.o"
+  "/home/ghabs/Programming/cpp/node/server.cpp" "/home/ghabs/Programming/cpp/node/build/CMakeFiles/node.dir/server.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

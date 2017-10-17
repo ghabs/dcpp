@@ -58,6 +58,12 @@ storage/storage.h
 stdlib.h
 -
 
+/home/ghabs/Programming/cpp/node/server.cpp
+node.h
+/home/ghabs/Programming/cpp/node/node.h
+string
+-
+
 /home/ghabs/Programming/cpp/node/socket/socket.h
 sys/types.h
 -

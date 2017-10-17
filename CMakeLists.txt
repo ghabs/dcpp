@@ -30,8 +30,9 @@ else()
 endif()
 
 # Build executable from sources and headers
-add_executable(${exercise} ${exercise_cpp} ${file}.h)
-add_executable(nodetests "tests/node_tests.cpp")
+add_executable(nodetests "tests/node_tests.cpp" ${exercise_cpp} ${file}.h)
+
+add_executable(${exercise} "server.cpp" ${exercise_cpp} ${file}.h)
 
 #TODO does this need to be added as library or just included?
 add_library(socket "socket/socket.cpp" "socket/socket.h")
@@ -39,5 +40,5 @@ add_library(socket "socket/socket.cpp" "socket/socket.h")
 target_link_libraries(${exercise} ${Boost_LIBRARIES})
 target_link_libraries(nodetests ${Boost_LIBRARIES})
 
-
 target_link_libraries(${exercise} socket)
+target_link_libraries(nodetests socket)

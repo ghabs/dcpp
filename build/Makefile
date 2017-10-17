@@ -111,19 +111,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named node
-
-# Build rule for target.
-node: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 node
-.PHONY : node
-
-# fast build rule for target.
-node/fast:
-	$(MAKE) -f CMakeFiles/node.dir/build.make CMakeFiles/node.dir/build
-.PHONY : node/fast
-
-#=============================================================================
 # Target rules for targets named nodetests
 
 # Build rule for target.
@@ -135,6 +122,19 @@ nodetests: cmake_check_build_system
 nodetests/fast:
 	$(MAKE) -f CMakeFiles/nodetests.dir/build.make CMakeFiles/nodetests.dir/build
 .PHONY : nodetests/fast
+
+#=============================================================================
+# Target rules for targets named node
+
+# Build rule for target.
+node: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 node
+.PHONY : node
+
+# fast build rule for target.
+node/fast:
+	$(MAKE) -f CMakeFiles/node.dir/build.make CMakeFiles/node.dir/build
+.PHONY : node/fast
 
 #=============================================================================
 # Target rules for targets named socket
@@ -155,6 +155,7 @@ node.o: node.cpp.o
 
 # target to build an object file
 node.cpp.o:
+	$(MAKE) -f CMakeFiles/nodetests.dir/build.make CMakeFiles/nodetests.dir/node.cpp.o
 	$(MAKE) -f CMakeFiles/node.dir/build.make CMakeFiles/node.dir/node.cpp.o
 .PHONY : node.cpp.o
 
@@ -164,6 +165,7 @@ node.i: node.cpp.i
 
 # target to preprocess a source file
 node.cpp.i:
+	$(MAKE) -f CMakeFiles/nodetests.dir/build.make CMakeFiles/nodetests.dir/node.cpp.i
 	$(MAKE) -f CMakeFiles/node.dir/build.make CMakeFiles/node.dir/node.cpp.i
 .PHONY : node.cpp.i
 
@@ -173,8 +175,36 @@ node.s: node.cpp.s
 
 # target to generate assembly for a file
 node.cpp.s:
+	$(MAKE) -f CMakeFiles/nodetests.dir/build.make CMakeFiles/nodetests.dir/node.cpp.s
 	$(MAKE) -f CMakeFiles/node.dir/build.make CMakeFiles/node.dir/node.cpp.s
 .PHONY : node.cpp.s
+
+server.o: server.cpp.o
+
+.PHONY : server.o
+
+# target to build an object file
+server.cpp.o:
+	$(MAKE) -f CMakeFiles/node.dir/build.make CMakeFiles/node.dir/server.cpp.o
+.PHONY : server.cpp.o
+
+server.i: server.cpp.i
+
+.PHONY : server.i
+
+# target to preprocess a source file
+server.cpp.i:
+	$(MAKE) -f CMakeFiles/node.dir/build.make CMakeFiles/node.dir/server.cpp.i
+.PHONY : server.cpp.i
+
+server.s: server.cpp.s
+
+.PHONY : server.s
+
+# target to generate assembly for a file
+server.cpp.s:
+	$(MAKE) -f CMakeFiles/node.dir/build.make CMakeFiles/node.dir/server.cpp.s
+.PHONY : server.cpp.s
 
 socket/socket.o: socket/socket.cpp.o
 
@@ -237,13 +267,16 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... node"
 	@echo "... nodetests"
+	@echo "... node"
 	@echo "... socket"
 	@echo "... edit_cache"
 	@echo "... node.o"
 	@echo "... node.i"
 	@echo "... node.s"
+	@echo "... server.o"
+	@echo "... server.i"
+	@echo "... server.s"
 	@echo "... socket/socket.o"
 	@echo "... socket/socket.i"
 	@echo "... socket/socket.s"

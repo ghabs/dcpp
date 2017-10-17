@@ -19,7 +19,7 @@ namespace commands {
           id = each;
         }
         else if (i == 1) {
-          org = each;
+          ori = each;
         }
         else if (i == 2) {
           option = each;
@@ -34,7 +34,7 @@ namespace commands {
       return 1;
     }
   string id;
-  string org;
+  string ori;
   string option;
   string reqres;
   vector<string> data;
