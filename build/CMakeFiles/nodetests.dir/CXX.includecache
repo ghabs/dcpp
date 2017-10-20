@@ -81,6 +81,8 @@ map
 -
 string
 -
+iostream
+-
 
 /home/ghabs/Programming/cpp/node/tests/node_tests.cpp
 ../node.h
