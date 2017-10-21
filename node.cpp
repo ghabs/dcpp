@@ -112,6 +112,7 @@ namespace node {
       if (sid.data == chord_id) {
         sd.option = "SET_SUCCESSOR";
         sd.reqres = "RES";
+
         sd.data.push_back(to_string(chord_id));
         sd.data.push_back(to_string(_port));
         rn.data = sd.to_string();
@@ -134,7 +135,8 @@ namespace node {
       sd.ori = comm.ori;
       sd.option = "SET_SUCCESSOR";
       sd.reqres = "RES";
-      sd.data.push_back(comm.data[0]);
+      sd.data.push_back(to_string(chord_id));
+      sd.data.push_back(to_string(_port));
       rn.data = sd.to_string();
       rn.peer_sockaddr = s.peer_sockaddr;
       rn.err = 1;
@@ -164,7 +166,7 @@ namespace node {
           sd.reqres = "REQ";
           rn.data = sd.to_string();
           rn.peer_sockaddr = server;
-          rn.err = 1;
+          rn.err = -1;
           return rn;
         }
         //Notify successors predecessor
@@ -188,6 +190,7 @@ namespace node {
     }
     else if (comm.option == "NOTIFY_CHORD") {
       if (rt.notify_check(stoi(comm.id))){
+        cout << "notify check pass" << '\n';
         rt.update_predecessor(stoi(comm.id), client_sockaddr);
       }
       commands::ro<string> rd = this->reshuffle_chord(stoi(comm.id));
@@ -401,27 +404,34 @@ namespace node {
   int Node::stabilize_chord(){
     string sd = print_chord_id() + ':';
     auto s = rt.get_successor();
+    auto p = rt.get_predecessor();
+    cout << "stabilize" << endl;
     if (s.id != chord_id) {
       sd += "NAN:STABILIZE_CHORD:REQ:";
       client_send(sd, s.peer_sockaddr);
       return 1;
     }
+    if ((s.id == chord_id) && (p.id != chord_id)){
+      rt.stabilize_check(p.id, p.peer_sockaddr);
+    }
   }
 
   void* Node::ping(void){
-    cout << "ping\n";
     while (true) {
-      sleep(3);
+      sleep(5);
       std::map<string,storage::peer_storage>::iterator it = request_list.begin();
+      //THIS IS BROKEN, FIX
         while (it != request_list.end()) {
+          cout << "ping\n";
           auto ps = it->second;
           client_send(ps.data_sent, ps.peer_sockaddr);
           cout << it->first << " pinged." << '\n';
           request_list[it->first].ping_count++;
           if (ps.ping_count > 2){
             it = request_list.erase(it);
-          }
+          } else {
           ++it;
+          }
         }
         stabilize_chord();
       }

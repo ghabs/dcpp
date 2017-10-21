@@ -71,8 +71,19 @@ public:
     return check_membership(p.id, id, k);
   }
   bool stabilize_check(int sip, sockaddr_in address){
+    /*  x = successor.predecessor;
+    if (x∈(n, successor))
+     successor = x;
+     successor.notify(n);
+   */
     //Ask successor what its predecessor is
     //Check if successor predecessor in range
+    if (id == sip){
+      return false;
+    }
+    if (s.id == sip) {
+      return false;
+    }
     if (check_membership(id, s.id, sip)){
         update_successor(sip, address);
         return true;
@@ -84,7 +95,7 @@ public:
     return s.id;
   };
   void update_successor(int id, sockaddr_in address) {
-    std::cout << "new successor" << '\n';
+    std::cout << "new successor" + std::to_string(id) << '\n';
     s.id = id;
     s.peer_sockaddr = address;
   }
