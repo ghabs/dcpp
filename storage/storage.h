@@ -21,6 +21,7 @@ struct peer {
   sockaddr_in peer_sockaddr;
 };
 
+//RENAME successor and all peer
 struct successor {
   int id;
   sockaddr_in peer_sockaddr;
@@ -33,7 +34,7 @@ struct peer_list {
 
 class RoutingTable {
 private:
-  std::map<int, peer_storage> fingers;
+  std::map<int, successor> fingers;
   //Sets the number of bytes in keyspace
   successor s;
   //predecessor
@@ -71,13 +72,6 @@ public:
     return check_membership(p.id, id, k);
   }
   bool stabilize_check(int sip, sockaddr_in address){
-    /*  x = successor.predecessor;
-    if (x∈(n, successor))
-     successor = x;
-     successor.notify(n);
-   */
-    //Ask successor what its predecessor is
-    //Check if successor predecessor in range
     if (id == sip){
       return false;
     }
@@ -110,6 +104,19 @@ public:
   successor get_predecessor(){
     //TODO: combine with above functions
       return p;
+  }
+  successor get_closest_node(int k){
+    std::map<int,storage::successor>::iterator it = fingers.end();
+    while (it != fingers.begin()) {
+      bool member = check_membership(it->first, id, k);
+      if (member) {
+        return it->second;
+      }
+      else {
+        it++;
+      }
+    }
+    return get_successor();
   }
 };
 }//namespace storage;

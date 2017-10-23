@@ -20,7 +20,7 @@ struct TestFixture
 
 
 BOOST_FIXTURE_TEST_SUITE(NodeTesting, TestFixture)
-
+/*
 BOOST_AUTO_TEST_CASE (keyspace_test)
 {
   auto k = n.get_keyspace();
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(reshuffle)
   auto rstatus = n.reshuffle();
   BOOST_CHECK(rstatus.data == "tanp");
 }
-
+*/
 BOOST_AUTO_TEST_CASE(command_struct)
 {
   string test_success = "1:NAN:C1:REQ:TEST:TWO";
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(check_rc_query_chord)
   rn = n.remote_node_controller("1:NAN:QUERY_CHORD_GET:REQ:59", partner.get_server_info());
   teststring = "";
   teststring += n.print_chord_id();
-  teststring += ":3001:GET_CHORD:RES:test";
+  teststring += ":3001:QUERY_CHORD_GET:RES:test";
   BOOST_CHECK(rn.data == teststring);
 }
 
@@ -112,6 +112,17 @@ BOOST_AUTO_TEST_CASE(SET_SUCCESSOR)
 }
 
 //TODO: STABILIZE
+BOOST_AUTO_TEST_CASE(STABILIZE)
+{
+  string send_test;
+  send_test += n.print_chord_id() + ":NAN:SET_SUCCESSOR:RES:" + n.print_chord_id() + ":3000";
+  auto rn = partner.remote_node_controller(send_test, n.get_server_info());
+  string teststring = "";
+  teststring += partner.print_chord_id();
+  teststring += ":NAN:NOTIFY_CHORD:REQ";
+  BOOST_CHECK(rn.data == teststring);
+}
+
 /*
 BOOST_AUTO_TEST_CASE(NOTIFY_CHORD)
 {

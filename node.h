@@ -48,12 +48,9 @@ namespace node {
     node::rn_struct remote_node_controller(const string option, sockaddr_in client_sockaddr);
     static void* callPingFunction(void *arg) { return ((Node*)arg)->ping(); }
     static void* callServerFunction(void *arg) { return ((Node*)arg)->server(); }
-    void add(void);
     void* ping(void);
     void* server(void);
     int disconnect();
-    commands::ro<int> put_value(string);
-    commands::ro<string> get_value(size_t);
     int* get_keyspace();
     int hash_chord(string val){
       hash<string> hashf;
@@ -62,6 +59,7 @@ namespace node {
       key = key % MSIZE;
       return key;
     }
+    //TODO replace nearest neighbor and also template with successor
     commands::ro<int> query_chord(int k) {
         commands::ro<int> io;
         io.data = this->rt.find_successor(k);
@@ -73,6 +71,7 @@ namespace node {
         io.s = 1;
         return io;
     };
+    commands::ro<string> get_value(size_t);
     commands::ro<string> reshuffle_chord(int p){
       commands::ro<string> ro;
       for (auto& kv : storage) {

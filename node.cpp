@@ -27,7 +27,6 @@ namespace node {
   : _partner_address(partner_address), _partner_port(partner_port), _port(port), rt(chord_id) {
 
     server_socket.create();
-    this->set_keyspace(0,0,100);
     rt.update_successor(chord_id, get_server_info());
     rt.update_predecessor(chord_id, get_server_info());
     //TODO(goldhaber): throw exception
@@ -71,35 +70,6 @@ namespace node {
     if (comm.option == "JOIN") {
       if (comm.reqres == "ACK") {
         request_list.erase(ip_addr);
-      }
-    }
-    else if (comm.option == "HANDSHAKE") {
-      if (comm.reqres == "ACK") {
-        sd.option = "PUT";
-        send_data += "NAN:PUT:REQ:";
-        this->set_keyspace(1, stoi(comm.data[0])+1, key_space[1]);
-        peers.lower.id = comm.id;
-        peers.lower.peer_sockaddr = client_sockaddr;
-        request_list.erase(ip_addr);
-        commands::ro<string> reshuffleddata = this->reshuffle();
-        if (!reshuffleddata.s){
-          cout << "error in reshuffle" << '\n';
-        } else {
-          send_data += reshuffleddata.data;
-          client_send(send_data, client_sockaddr);
-        }
-      }
-      else {
-        int mid = key_space[1] / 2;
-        sd.option = "SETKEYS";
-        sd.reqres = "RES";
-        sd.data.push_back(to_string(key_space[0]));
-        sd.data.push_back(to_string(mid));
-        send_data += "NAN:SETKEYS:RES:" + to_string(key_space[0]) + ':' + to_string(mid);
-        int csstatus = client_send(send_data, client_sockaddr);
-        if(csstatus){
-          put_request_list(send_data, client_sockaddr, "HANDSHAKE");
-        }
       }
     }
     else if (comm.option == "HANDSHAKE_CHORD") {
@@ -207,17 +177,6 @@ namespace node {
       rn.err = -1;
       return rn;
     }
-    else if (comm.option == "SETKEYS") {
-      request_list.erase(ip_addr);
-      int key_lower, key_higher;
-      key_lower = stoi(comm.data[0]);
-      key_higher = stoi(comm.data[1]);
-      send_data += "NAN:HANDSHAKE:ACK:" + comm.data[1];
-      this->set_keyspace(1, key_lower, key_higher);
-      peers.higher.id = comm.id;
-      peers.higher.peer_sockaddr = client_sockaddr;
-      client_send(send_data, client_sockaddr);
-    }
     else if (comm.option == "QUERY_CHORD_PUT") {
       int key = this->hash_chord(comm.data[0]);
       cout << key << '\n';
@@ -260,6 +219,7 @@ namespace node {
       auto sid = this->query_chord(key);
       if (!sid.s){
         //FORWARD TO NEIGHBOR NODE
+        //sid.data has neighbor node to check
       }
       sd.ori = to_string(ntohs(client_sockaddr.sin_port));
       sd.option = "QUERY_CHORD_GET";
@@ -307,67 +267,6 @@ namespace node {
       rn.err = 1;
       return rn;
     }
-    else if (comm.option == "PUT"){
-      //PUT: Put values
-      //  for (auto data : comm.data){
-      commands::ro<int> key = this->put_value(comm.data[0]);
-      if (key.s < 0) {
-        //auto addr = inet_ntoa(client_sockaddr.sin_addr.s_addr);
-        //Add a check if NAN; if not then use original requester port
-        auto port = to_string(ntohs(client_sockaddr.sin_port));
-        send_data += port;
-        send_data += ":PUT:RED:";
-        send_data += comm.data[0];
-        key.data ? client_send(send_data, peers.higher.peer_sockaddr) :
-        client_send(send_data, peers.lower.peer_sockaddr);
-      }
-      else {
-        send_data += "NAN:N2:RES:";
-        send_data += to_string(key.data);
-        cout << "sent key: " << send_data << '\n';
-        if (comm.reqres == "RED") {
-          struct sockaddr_in server;
-          server.sin_port = htons(stoi(comm.ori));
-          server.sin_family = AF_INET;
-          server.sin_addr.s_addr = inet_addr("127.0.0.1");
-          client_send(send_data, server);
-        }
-        else {
-          client_send(send_data, client_sockaddr);
-        }
-      }
-      //}
-    }
-    else if (comm.option == "GET"){
-      auto port = to_string(ntohs(client_sockaddr.sin_port));
-
-      int key = stoi(comm.data[0]);
-      if (key < key_space[0]) {
-        send_data += port;
-        send_data += ":N3:RES:";
-        send_data += key;
-        client_send(send_data, peers.lower.peer_sockaddr);
-      }
-      else if (key > key_space[1]) {
-        send_data += port;
-        send_data += ":N3:RES:";
-        send_data += key;
-        client_send(send_data, peers.higher.peer_sockaddr);
-      }
-      else {
-        send_data += "NAN:N3:RES:";
-        commands::ro<string> status = this->get_value(stoi(comm.data[0]));
-        if (!status.s) {
-          perror("error in get value; not present");
-          //Call pass to peer
-        }
-        else {
-          send_data += status.data;
-          cout << "sent value: " << send_data << '\n';
-          client_send(send_data, client_sockaddr);
-        }
-      }
-    }
     else {
       cout << "Unknown Command" << '\n';
     }
@@ -376,18 +275,6 @@ namespace node {
     return rn;
   }
 
-  void Node::add(void){
-    struct sockaddr_in server;
-    server.sin_port = htons(_partner_port);
-    server.sin_family = AF_INET;
-    server.sin_addr.s_addr = inet_addr("127.0.0.1");
-    string send_data = id + ':';
-    send_data += "NAN:HANDSHAKE:REQ";
-    int csstatus = client_send(send_data, server);
-    if(csstatus){
-      this->put_request_list(send_data, server, "JOIN");
-    }
-  }
   void Node::join_chord(void){
     struct sockaddr_in server;
     server.sin_port = htons(_partner_port);
@@ -417,10 +304,10 @@ namespace node {
   }
 
   void* Node::ping(void){
+    int stabilize = 0;
     while (true) {
       sleep(5);
       std::map<string,storage::peer_storage>::iterator it = request_list.begin();
-      //THIS IS BROKEN, FIX
         while (it != request_list.end()) {
           cout << "ping\n";
           auto ps = it->second;
@@ -430,10 +317,14 @@ namespace node {
           if (ps.ping_count > 2){
             it = request_list.erase(it);
           } else {
-          ++it;
+            ++it;
           }
         }
-        stabilize_chord();
+        ++stabilize;
+        if (stabilize == 3) {
+          stabilize_chord();
+          stabilize = 0;
+        }
       }
     return NULL;
   }
@@ -504,31 +395,6 @@ namespace node {
       return -1;
     }
 
-    commands::ro<int> Node::put_value(string val){
-      commands::ro<int> obj;
-      hash<string> hashf;
-      size_t key;
-      key = hashf(val);
-      key = key % 100;
-      cout << "key " << key << '\n';
-      if (key < key_space[0]) {
-        obj.s = -1;
-        obj.data = 0;
-        cout << "s " << obj.s << '\n';
-        return obj;
-      }
-      else if (key > key_space[1]) {
-        obj.s = -1;
-        obj.data = 1;
-        return obj;
-      }
-      else {
-        storage[key] = val;
-        obj.s = 1;
-        obj.data = key;
-        return obj;
-      }
-    }
 
     commands::ro<string> Node::get_value(size_t key){
       commands::ro<string> ro;
@@ -540,24 +406,6 @@ namespace node {
       }
       ro.s = -1;
       return ro;
-    }
-
-
-    int Node::set_keyspace(int nodes = 0, int key_lower = 0, int key_higher = 100){
-      if (nodes == 0) {
-        key_space[0] = key_lower;
-        key_space[1] = key_higher;
-      }
-      else {
-        //TODO(goldhaber): Add more logic for more nodes
-        key_space[0] = key_lower;
-        key_space[1] = key_higher;
-      }
-      cout << "Key Space: " << key_space[0] << ':' << key_space[1] << '\n';
-      return 1;
-      // if connected to network, get the keyspace of the connected node
-      // send message to that node that it now is only responsible for start -> mid-1
-      // set self keyspace to mid -> end
     }
 
     commands::ro<string> Node::reshuffle() {
