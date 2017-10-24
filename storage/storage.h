@@ -56,7 +56,7 @@ public:
     }
   }
   bool check_membership(int a, int b, int c) {
-    std::cout << std::to_string(a) << ':' << std::to_string(b) << ':' << std::to_string(b) << '\n';
+    std::cout << std::to_string(a) << ':' << std::to_string(b) << ':' << std::to_string(c) << '\n';
 
     //CHECK THIS DOESN"T SEEM RIGHT, should be false
     if (a == b) {

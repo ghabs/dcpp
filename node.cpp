@@ -61,7 +61,6 @@ namespace node {
     commands::Commands comm(option);
     commands::Commands sd(to_string(chord_id));
     node::rn_struct rn;
-    // cout << "option " << comm.option << '\n';
     string send_data = id + ':';
     sd.ori = "NAN";
     sd.reqres = "REQ";
@@ -175,11 +174,19 @@ namespace node {
     }
     else if (comm.option == "QUERY_CHORD_PUT") {
       int key = this->hash_chord(comm.data[0]);
-      // cout << key << '\n';
+      cout << key << '\n';
       auto sid = this->query_chord(key);
       // cout << sid.data.id << '\n';
       if (!sid.s) {
         //Send to nearest neighbor with query_chord command
+        sd.data.push_back(comm.data[0]);
+        sd.ori = to_string(ntohs(client_sockaddr.sin_port));
+        sd.option = "QUERY_CHORD_PUT";
+        sd.reqres = "REQ";
+        rn.data = sd.to_string();
+        rn.peer_sockaddr = sid.data.peer_sockaddr;
+        rn.err = 1;
+        return rn;
       }
       if (sid.data.id == chord_id) {
         storage[key] = comm.data[0];
@@ -206,25 +213,25 @@ namespace node {
       return rn;
     }
     else if (comm.option == "QUERY_CHORD_GET"){
-      if (comm.reqres == "RES") {
-        // cout << "Got VALUE Back" << comm.to_string() << endl;
-        rn.err = -1;
-        return rn;
-      }
       int key = stoi(comm.data[0]);
+      cout << "key" << to_string(key) << '\n';
       auto sid = this->query_chord(key);
       if (!sid.s){
         //FORWARD TO NEIGHBOR NODE
         //sid.data has neighbor node to check
         //TODO write forward function
+        sd.data.push_back(comm.data[0]);
+        sd.ori = to_string(ntohs(client_sockaddr.sin_port));
+        sd.option = "QUERY_CHORD_GET";
+        sd.reqres = "REQ";
         rn.data = sd.to_string();
         rn.peer_sockaddr = sid.data.peer_sockaddr;
         rn.err = 1;
         return rn;
       }
-      sd.ori = to_string(ntohs(client_sockaddr.sin_port));
-      sd.option = "QUERY_CHORD_GET";
       if (sid.data.id == chord_id) {
+        sd.ori = to_string(ntohs(client_sockaddr.sin_port));
+        sd.option = "QUERY_CHORD_GET";
         string value = storage[key];
         sd.reqres = "RES";
         sd.data.push_back(value);
@@ -234,10 +241,14 @@ namespace node {
         rn.err = 1;
         return rn;
       }
+      sd.ori = to_string(ntohs(client_sockaddr.sin_port));
+      sd.option = "GET_CHORD";
       sd.reqres = "REQ";
       sd.data.push_back(comm.data[0]);
       rn.data = sd.to_string();
       rn.peer_sockaddr = sid.data.peer_sockaddr;
+      cout << "sending get_chord to " << sid.data.id << '\n';
+      //TODO change err system
       rn.err = 1;
       return rn;
     }
@@ -248,6 +259,7 @@ namespace node {
         return rn;
       }
       int key = this->hash_chord(comm.data[0]);
+      storage[key] = comm.data[0];
       sd.ori = to_string(ntohs(client_sockaddr.sin_port));
       sd.option = "PUT_CHORD";
       sd.reqres = "RES";
@@ -259,8 +271,29 @@ namespace node {
       rn.err = 1;
       return rn;
     }
+    else if (comm.option == "GET_CHORD") {
+      cout << "get chord" << this->print_chord_id() << '\n';
+      if (comm.reqres == "RES") {
+        cout << "Got VALUE Back" << comm.to_string() << endl;
+        rn.err = -1;
+        return rn;
+      }
+      int key = stoi(comm.data[0]);
+      cout << "key" << key << '\n';
+      string value = storage[key];
+      cout << "value" << value << '\n';
+      sd.option = "GET_CHORD";
+      sd.reqres = "RES";
+      sd.data.push_back(value);
+      rn.data = sd.to_string();
+      //TODO: change it to go to original client
+      rn.peer_sockaddr = client_sockaddr;
+      //TODO change err system
+      rn.err = 1;
+      return rn;
+    }
     else if (comm.option == "GET_STATS") {
-      cout << "suc:"<< this->print_successor() << ":pre:" << this->print_predecessor()<< '\n';
+      cout << "id:"<< this->print_chord_id() << ":suc:"<< this->print_successor() << ":pre:" << this->print_predecessor()<< '\n';
       //sd.data.push_back("Chord Id: " + this->print_chord_id());
       rn.peer_sockaddr = client_sockaddr;
       rn.err = -1;
@@ -269,7 +302,7 @@ namespace node {
     else if (comm.option == "DISCONNECT") {
         commands::ro<string> ro = this->disconnect();
         if (!ro.s){
-          rn.err = -1;
+          rn.err = -2;
           return rn;
         }
         //TODO replace this double call
@@ -279,7 +312,7 @@ namespace node {
         sd.data.push_back(ro.data);
         rn.data = sd.to_string();
         rn.peer_sockaddr = s.peer_sockaddr;
-        rn.err = 1;
+        rn.err = -2;
         return rn;
     }
     else {
@@ -308,7 +341,6 @@ namespace node {
     string sd = print_chord_id() + ':';
     auto s = rt.get_successor();
     auto p = rt.get_predecessor();
-    cout << "stabilize" << endl;
     if (s.id != chord_id) {
       sd += "NAN:STABILIZE_CHORD:REQ:";
       client_send(sd, s.peer_sockaddr);
@@ -390,19 +422,20 @@ namespace node {
         (struct sockaddr *) &their_addr, &addr_len);
         //PEER COMMANDS
         //TODO change to commands.h
-        if (strcmp(buf, "close") == 0){
-          // cout << "shutting down" << '\n';
-          run_server = false;
-        }
-        else {
+        data = buf;
+        //TODO not working
+
           //TODO replace and standardize around string or char
-          data = buf;
           // cout << "data received from peer " << data << '\n';
           auto rn = this->remote_node_controller(data, their_addr);
           if (rn.err > 0){
             this->client_send(rn.data, rn.peer_sockaddr);
           }
-        }
+          if (rn.err == -2){
+            cout << "disconnect" << '\n';
+            this->client_send(rn.data, rn.peer_sockaddr);
+            run_server = false;
+          }
       }
       return NULL;
     }
