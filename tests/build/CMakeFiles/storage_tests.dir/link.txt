@@ -1,0 +1,1 @@
+/usr/bin/c++  -std=c++11 -pthread  -rdynamic CMakeFiles/storage_tests.dir/storage_tests.cpp.o  -o storage_tests -lboost_system -lboost_filesystem -lboost_unit_test_framework 

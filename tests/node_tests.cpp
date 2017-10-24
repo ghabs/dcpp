@@ -11,8 +11,8 @@ struct TestFixture
   node::Node partner;
 
   TestFixture()
-  : n(3000, "127.0.0.1", 2001),
-  partner(3001, "127.0.0.1", 3000)
+  : n(3000, "127.0.0.1", 2001, 1),
+  partner(3001, "127.0.0.1", 3000, 2)
   {}
 
   ~TestFixture() = default;

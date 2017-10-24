@@ -25,9 +25,10 @@ namespace node {
   private:
     const string id = to_string(rand() % 100);
     //CHORD: UUID
+    int M = 6;
     int MSIZE = 64;
     //TODO change to c++ rand number
-    int chord_id = rand() % MSIZE;
+    int chord_id;
     storage::RoutingTable rt;
     string _address;
     int _port;
@@ -41,8 +42,10 @@ namespace node {
     map<const string, storage::peer_storage> request_list;
     //TOPOLOGy MAP
     storage::peer_list peers;
+    bool joining = false;
+    bool serving = false;
   public:
-    Node(int port, string partner_address, int partner_port);
+    Node(int port, string partner_address, int partner_port, int chord_id);
     ~Node();
     int run();
     node::rn_struct remote_node_controller(const string option, sockaddr_in client_sockaddr);
@@ -50,7 +53,7 @@ namespace node {
     static void* callServerFunction(void *arg) { return ((Node*)arg)->server(); }
     void* ping(void);
     void* server(void);
-    int disconnect();
+    commands::ro<string> disconnect();
     int* get_keyspace();
     int hash_chord(string val){
       hash<string> hashf;
@@ -60,12 +63,12 @@ namespace node {
       return key;
     }
     //TODO replace nearest neighbor and also template with successor
-    commands::ro<int> query_chord(int k) {
-        commands::ro<int> io;
-        io.data = this->rt.find_successor(k);
-        if (!io.data) {
-          io.s = -1;
-          io.data = rt.nearest_neighbor(k);
+    commands::ro<storage::successor> query_chord(int k) {
+        commands::ro<storage::successor> io;
+        int opt_flag = 1;
+        io.data = this->rt.find_successor(k, &opt_flag);
+        if (!opt_flag) {
+          io.s = opt_flag;
           return io;
         }
         io.s = 1;
@@ -101,6 +104,11 @@ namespace node {
       auto s = rt.get_successor();
       return to_string(s.id);
     }
+    string print_predecessor(){
+      auto p = rt.get_predecessor();
+      return to_string(p.id);
+    }
+
     //TODO replace everywhere and also get from running server socket info instead of presets
     sockaddr_in get_server_info() {
       struct sockaddr_in server;

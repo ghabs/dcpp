@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 2.8.11)
 
 # Name the project after the exercise
 project(${exercise} CXX)
+set(CMAKE_BUILD_TYPE Debug)
 
 find_package(Boost 1.59 REQUIRED COMPONENTS system filesystem unit_test_framework)
 

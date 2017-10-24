@@ -1,1 +1,1 @@
-/usr/bin/c++  -std=c++11 -pthread  -rdynamic CMakeFiles/node.dir/server.cpp.o CMakeFiles/node.dir/node.cpp.o  -o node -lboost_system -lboost_filesystem -lboost_unit_test_framework libsocket.a 
+/usr/bin/c++  -std=c++11 -pthread -g  -rdynamic CMakeFiles/node.dir/server.cpp.o CMakeFiles/node.dir/node.cpp.o  -o node -lboost_system -lboost_filesystem -lboost_unit_test_framework libsocket.a 

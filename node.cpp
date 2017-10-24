@@ -23,8 +23,8 @@
 using namespace std;
 
 namespace node {
-  Node::Node(int port=4950, string partner_address = "127.0.0.1", int partner_port=3002)
-  : _partner_address(partner_address), _partner_port(partner_port), _port(port), rt(chord_id) {
+  Node::Node(int port=4950, string partner_address = "127.0.0.1", int partner_port=3002, int chord_id=1)
+  : _partner_address(partner_address), _partner_port(partner_port), _port(port), chord_id(chord_id), rt(chord_id) {
 
     server_socket.create();
     rt.update_successor(chord_id, get_server_info());
@@ -32,10 +32,10 @@ namespace node {
     //TODO(goldhaber): throw exception
     if (!server_socket.bind(port))
     {
-      cout << "Could not bind to port." << '\n';
+      // cout << "Could not bind to port." << '\n';
     }
     else {
-      cout << "Node has bound to port " << port << '\n';
+      // cout << "Node has bound to port " << port << '\n';
     }
   }
   Node::~Node() {
@@ -61,25 +61,23 @@ namespace node {
     commands::Commands comm(option);
     commands::Commands sd(to_string(chord_id));
     node::rn_struct rn;
-    cout << "option " << comm.option << '\n';
+    // cout << "option " << comm.option << '\n';
     string send_data = id + ':';
     sd.ori = "NAN";
     sd.reqres = "REQ";
     string ip_addr = inet_ntoa(client_sockaddr.sin_addr);
     //TODO replace with hash table
-    if (comm.option == "JOIN") {
-      if (comm.reqres == "ACK") {
-        request_list.erase(ip_addr);
-      }
-    }
-    else if (comm.option == "HANDSHAKE_CHORD") {
+    if (comm.option == "HANDSHAKE_CHORD") {
       //TODO send reshuffled data
-      request_list.erase(ip_addr);
+      //request_list.erase(ip_addr + "JOIN");
       auto sid = this->query_chord(stoi(comm.data[0]));
       if (!sid.s){
         //TODO REDIRECT TO NEIGHBOR, HAVE THEM SEARCH
+        //cout << "not neighor" << '\n';
+        //rn.err = -1;
+        //return rn;
       }
-      if (sid.data == chord_id) {
+      if (sid.data.id == chord_id) {
         sd.option = "SET_SUCCESSOR";
         sd.reqres = "RES";
 
@@ -101,14 +99,13 @@ namespace node {
         rn.err = 1;
         return rn;
       }
-      auto s = rt.get_successor();
       sd.ori = comm.ori;
       sd.option = "SET_SUCCESSOR";
       sd.reqres = "RES";
       sd.data.push_back(to_string(chord_id));
       sd.data.push_back(to_string(_port));
       rn.data = sd.to_string();
-      rn.peer_sockaddr = s.peer_sockaddr;
+      rn.peer_sockaddr = sid.data.peer_sockaddr;
       rn.err = 1;
       //check if need to use ori
       rt.update_successor(stoi(comm.data[0]), client_sockaddr);
@@ -136,15 +133,14 @@ namespace node {
           sd.reqres = "REQ";
           rn.data = sd.to_string();
           rn.peer_sockaddr = server;
-          rn.err = -1;
+          rn.err = 1;
           return rn;
         }
         //Notify successors predecessor
-
       }
     }
     else if (comm.option == "SET_SUCCESSOR") {
-      request_list.erase(ip_addr);
+      //request_list.erase(ip_addr);
       struct sockaddr_in server;
       server.sin_port = htons(stoi(comm.data[1]));
       server.sin_family = AF_INET;
@@ -179,13 +175,13 @@ namespace node {
     }
     else if (comm.option == "QUERY_CHORD_PUT") {
       int key = this->hash_chord(comm.data[0]);
-      cout << key << '\n';
+      // cout << key << '\n';
       auto sid = this->query_chord(key);
-      cout << sid.data << '\n';
+      // cout << sid.data.id << '\n';
       if (!sid.s) {
         //Send to nearest neighbor with query_chord command
       }
-      if (sid.data == chord_id) {
+      if (sid.data.id == chord_id) {
         storage[key] = comm.data[0];
         sd.ori = to_string(ntohs(client_sockaddr.sin_port));
         sd.option = "PUT_CHORD";
@@ -211,7 +207,7 @@ namespace node {
     }
     else if (comm.option == "QUERY_CHORD_GET"){
       if (comm.reqres == "RES") {
-        cout << "Got VALUE Back" << comm.to_string() << endl;
+        // cout << "Got VALUE Back" << comm.to_string() << endl;
         rn.err = -1;
         return rn;
       }
@@ -220,10 +216,15 @@ namespace node {
       if (!sid.s){
         //FORWARD TO NEIGHBOR NODE
         //sid.data has neighbor node to check
+        //TODO write forward function
+        rn.data = sd.to_string();
+        rn.peer_sockaddr = sid.data.peer_sockaddr;
+        rn.err = 1;
+        return rn;
       }
       sd.ori = to_string(ntohs(client_sockaddr.sin_port));
       sd.option = "QUERY_CHORD_GET";
-      if (sid.data == chord_id) {
+      if (sid.data.id == chord_id) {
         string value = storage[key];
         sd.reqres = "RES";
         sd.data.push_back(value);
@@ -233,11 +234,10 @@ namespace node {
         rn.err = 1;
         return rn;
       }
-      auto s = rt.get_successor();
       sd.reqres = "REQ";
       sd.data.push_back(comm.data[0]);
       rn.data = sd.to_string();
-      rn.peer_sockaddr = s.peer_sockaddr;
+      rn.peer_sockaddr = sid.data.peer_sockaddr;
       rn.err = 1;
       return rn;
     }
@@ -260,15 +260,30 @@ namespace node {
       return rn;
     }
     else if (comm.option == "GET_STATS") {
-      sd.data.push_back("Chord Id: " + this->print_chord_id());
-      sd.data.push_back("Successor: " + this->print_successor());
-      rn.data = sd.to_string();
+      cout << "suc:"<< this->print_successor() << ":pre:" << this->print_predecessor()<< '\n';
+      //sd.data.push_back("Chord Id: " + this->print_chord_id());
       rn.peer_sockaddr = client_sockaddr;
-      rn.err = 1;
+      rn.err = -1;
       return rn;
     }
+    else if (comm.option == "DISCONNECT") {
+        commands::ro<string> ro = this->disconnect();
+        if (!ro.s){
+          rn.err = -1;
+          return rn;
+        }
+        //TODO replace this double call
+        auto s = rt.get_successor();
+        sd.option = "PUT_CHORD";
+        sd.reqres = "REQ";
+        sd.data.push_back(ro.data);
+        rn.data = sd.to_string();
+        rn.peer_sockaddr = s.peer_sockaddr;
+        rn.err = 1;
+        return rn;
+    }
     else {
-      cout << "Unknown Command" << '\n';
+      // cout << "Unknown Command" << '\n';
     }
     //TODO():remove when all updated;
     rn.err = -1;
@@ -288,6 +303,7 @@ namespace node {
       this->put_request_list(send_data, server, "JOIN");
     }
   }
+
   int Node::stabilize_chord(){
     string sd = print_chord_id() + ':';
     auto s = rt.get_successor();
@@ -305,26 +321,30 @@ namespace node {
 
   void* Node::ping(void){
     int stabilize = 0;
+    int fix = 1;
     while (true) {
-      sleep(5);
+      sleep(2);
       std::map<string,storage::peer_storage>::iterator it = request_list.begin();
         while (it != request_list.end()) {
-          cout << "ping\n";
+          // cout << "ping\n";
           auto ps = it->second;
           client_send(ps.data_sent, ps.peer_sockaddr);
-          cout << it->first << " pinged." << '\n';
+          // cout << it->first << " pinged." << '\n';
           request_list[it->first].ping_count++;
           if (ps.ping_count > 2){
+            // cout << "erased" << '\n';
             it = request_list.erase(it);
           } else {
             ++it;
           }
         }
-        ++stabilize;
-        if (stabilize == 3) {
+        if (++stabilize == 3) {
           stabilize_chord();
-          stabilize = 0;
+          stabilize = 1;
         }
+        //rt.fix_fingers(fix);
+        //fix = ++fix % M;
+        // cout << this->print_successor() << '\n';
       }
     return NULL;
   }
@@ -336,7 +356,7 @@ namespace node {
       perror("talker: sendto");
       return -1;
     }
-    cout << "client_sendmodule sent " << data << " to " << ntohs(client_sockaddr.sin_port) << '\n';
+    // cout << "client_sendmodule sent " << data << " to " << ntohs(client_sockaddr.sin_port) << '\n';
     return 1;
   }
 
@@ -350,7 +370,7 @@ namespace node {
       ps.response_needed = response;
       //TODO(add unique identifier to message)
       string ip_addr = inet_ntoa(client_sockaddr.sin_addr);
-      request_list[ip_addr] = ps;
+      request_list[ip_addr + response] = ps;
       ro.s = 1;
       return ro;
     }
@@ -364,19 +384,20 @@ namespace node {
       this->join_chord();
       while(run_server) {
         sleep(1);
-        cout << "running server" << '\n';
+        // cout << "running server" << '\n';
+        memset(buf, 0, sizeof buf);
         ::recvfrom(server_socket.get_sock_descriptor(), buf, 1024 -1 , 0,
         (struct sockaddr *) &their_addr, &addr_len);
         //PEER COMMANDS
         //TODO change to commands.h
         if (strcmp(buf, "close") == 0){
-          cout << "shutting down" << '\n';
+          // cout << "shutting down" << '\n';
           run_server = false;
         }
         else {
           //TODO replace and standardize around string or char
           data = buf;
-          cout << "data received from peer " << data << '\n';
+          // cout << "data received from peer " << data << '\n';
           auto rn = this->remote_node_controller(data, their_addr);
           if (rn.err > 0){
             this->client_send(rn.data, rn.peer_sockaddr);
@@ -386,13 +407,23 @@ namespace node {
       return NULL;
     }
 
-    int Node::disconnect(){
+    commands::ro<string> Node::disconnect(){
       // call partner node send disconnect message
       // Send disconnect call to partner node
       // TODO: store in internal state whether or not in disconnect mode
       // TODO: Build an internal state object
       // Once keyspace has been updated with lower & higher, run disconnect to update
-      return -1;
+      auto s = rt.get_successor();
+      commands::ro<string> ro;
+      if (s.id == chord_id) {
+          ro.s = -1;
+          return ro;
+      }
+      for (auto& kv: storage) {
+        ro.data += (kv.second + ':');
+      }
+      ro.s = 1;
+      return ro;
     }
 
 
@@ -417,7 +448,7 @@ namespace node {
       for (auto& kv : storage) {
         if (kv.first < key_space[0] || kv.first > key_space[1]) {
           //Change to not a pointer?
-          cout << kv.first << '\n';
+          // cout << kv.first << '\n';
           resp = this->get_value(kv.first);
           if (resp.s) {
             sd += resp.data;
@@ -425,7 +456,7 @@ namespace node {
         }
         //Decide if going to erase from memory
       }
-      cout << "reshuffle " << sd << '\n';
+      // cout << "reshuffle " << sd << '\n';
       if (sd == ""){
         ro.s = -1;
         return ro;

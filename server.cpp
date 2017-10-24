@@ -12,7 +12,8 @@ int main(int argc, char *argv[])
   int port = atoi(argv[1]);
   string paddress = argv[2];
   int pport = atoi(argv[3]);
-  node::Node n(port, paddress, pport);
+  int chord_id = atoi(argv[4]);
+  node::Node n(port, paddress, pport, chord_id);
   n.run();
   //TODO, create several nodes from the get go to simulate network;
   return 0;
