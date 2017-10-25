@@ -40,7 +40,7 @@ namespace node {
     map<size_t, string> storage;
     int num_clients = 0;
     map<const string, storage::peer_storage> request_list;
-    //TOPOLOGy MAP
+    //TOPOLOGY MAP
     storage::peer_list peers;
     bool joining = false;
     bool serving = false;

@@ -123,6 +123,7 @@ namespace node {
         return rn;
       }
       if (comm.reqres == "RES") {
+        //TODO(CHECK again if should )
         struct sockaddr_in server;
         server.sin_port = htons(stoi(comm.data[1]));
         server.sin_family = AF_INET;
