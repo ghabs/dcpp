@@ -3,15 +3,39 @@
 
 #include <netinet/in.h>
 #include <map>
+#include <vector>
 #include <string>
 #include <iostream>
 
 namespace storage {
 
+  //TODO move to different namespace
+  typedef enum {
+    join, handshake, stabilize, disconnect
+  } Requests;
+
+  struct request_id {
+    int id;
+    Requests res;
+
+    bool const operator == (const request_id &o) const {
+      return id == o.id && res == o.res;
+    }
+
+    bool const operator<(const request_id &o) const {
+     return id < o.id || (id == o.id && res != o.res);
+    }
+  };
+
+  typedef struct request_id request_id;
+
+
 struct peer_storage {
   sockaddr_in peer_sockaddr;
   std::string data_sent;
   //TODO change to be map for multiple responses needed
+  Requests request;
+  //TODO: deprecate string in favor of enum
   std::string response_needed;
   int ping_count = 0;
 };
@@ -32,6 +56,53 @@ struct peer_list {
   peer higher;
 };
 
+class RequestTable {
+private:
+  std::map<request_id, peer_storage> request_storage;
+public:
+  //add a request
+  int add_request(int id, Requests res, sockaddr_in peer_sockaddr,
+                  Requests req, std::string data_sent) {
+    request_id r; r.id = id; r.res = res;
+    struct peer_storage ps; ps.peer_sockaddr = peer_sockaddr; ps.request = req;
+    ps.data_sent = data_sent;
+    request_storage[r] = ps;
+    return 1;
+  };
+
+  int check_request(int id, Requests res) {
+    request_id r; r.id = id; r.res = res;
+    auto it = request_storage.find(r);
+    if (it != request_storage.end()) {
+      //TODO change
+      return remove_request(id, res);
+    }
+    else -1;
+  }
+  int get_size() { return request_storage.size(); }
+  //if request has been fulfilled, remove it
+  int remove_request(int id, Requests res) {
+    request_id r; r.id = id; r.res = res;
+    request_storage.erase(r);
+    return 1;
+  };
+  //for requests over a certain threshold, remove all of them
+  std::vector<request_id> clear_requests(int ping_number) {
+    std::vector<request_id> unfulfilled_reqs;
+    auto it = request_storage.begin();
+    while (it != request_storage.end()) {
+      if (it->second.ping_count > ping_number){
+        unfulfilled_reqs.push_back(it->first);
+        it = request_storage.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    return unfulfilled_reqs;
+  };
+  //if a request was unfulfilled, and had unfulfilled conditions, notify
+};
+
 class RoutingTable {
 private:
   std::map<int, successor> fingers;
@@ -42,7 +113,10 @@ private:
   int id;
 
 public:
-  RoutingTable(int id) : id(id) { s.id = id; }
+  RoutingTable(int id) : id(id) {
+    s.id = id;
+    fingers[1] = s;
+  }
   successor find_successor(int k, int * opt_flag) {
     bool member = check_membership(id, s.id, k);
     if (member) {
@@ -57,7 +131,6 @@ public:
   }
   bool check_membership(int a, int b, int c) {
     std::cout << std::to_string(a) << ':' << std::to_string(b) << ':' << std::to_string(c) << '\n';
-
     //CHECK THIS DOESN"T SEEM RIGHT, should be false
     if (a == b) {
       return true;
@@ -117,9 +190,12 @@ public:
     }
     return get_successor();
   }
-  void fix_fingers(int nf) {
-    int * opt;
-    fingers[nf] = find_successor(id + (2^(nf-1)), opt);
+  successor fix_fingers(int nf) {
+    //int * opt;
+    //Check if still online
+    //Ping that address, see if it returns traffic
+    //fingers[nf] = find_successor(id + (2^(nf-1)), opt);
+    return fingers[nf];
   }
 };
 }//namespace storage;

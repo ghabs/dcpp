@@ -79,7 +79,6 @@ namespace node {
       if (sid.data.id == chord_id) {
         sd.option = "SET_SUCCESSOR";
         sd.reqres = "RES";
-
         sd.data.push_back(to_string(chord_id));
         sd.data.push_back(to_string(_port));
         rn.data = sd.to_string();
@@ -354,7 +353,6 @@ namespace node {
 
   void* Node::ping(void){
     int stabilize = 0;
-    int fix = 1;
     while (true) {
       sleep(2);
       std::map<string,storage::peer_storage>::iterator it = request_list.begin();
@@ -365,6 +363,7 @@ namespace node {
           // cout << it->first << " pinged." << '\n';
           request_list[it->first].ping_count++;
           if (ps.ping_count > 2){
+            //Check if needed acknowledged
             // cout << "erased" << '\n';
             it = request_list.erase(it);
           } else {
@@ -375,6 +374,9 @@ namespace node {
           stabilize_chord();
           stabilize = 1;
         }
+        //Fix fix_fingers
+        //Ping all the addresses in the fingers table
+        //if after three pings the table hasn't acknowledged, then set the value as nil
         //rt.fix_fingers(fix);
         //fix = ++fix % M;
         // cout << this->print_successor() << '\n';
