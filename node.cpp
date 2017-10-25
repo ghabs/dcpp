@@ -75,6 +75,14 @@ namespace node {
         //cout << "not neighor" << '\n';
         //rn.err = -1;
         //return rn;
+        sd.data.push_back(comm.data[0]);
+        sd.ori = to_string(ntohs(client_sockaddr.sin_port));
+        sd.option = "HANDSHAKE_CHORD";
+        sd.reqres = "REQ";
+        rn.data = sd.to_string();
+        rn.peer_sockaddr = sid.data.peer_sockaddr;
+        rn.err = 1;
+        return rn;
       }
       if (sid.data.id == chord_id) {
         sd.option = "SET_SUCCESSOR";
@@ -315,6 +323,11 @@ namespace node {
         rn.err = -2;
         return rn;
     }
+    else if (comm.option == "UPDATE_SUCCESSOR_LIST"){
+      if (comm.reqres == "REQ") {
+
+      }
+    }
     else {
       // cout << "Unknown Command" << '\n';
     }
@@ -333,6 +346,7 @@ namespace node {
     send_data += to_string(chord_id);
     int csstatus = client_send(send_data, server);
     if(csstatus){
+      reqtab.add_request(chord_id, storage::Requests::join, storage::Requests::handshake, server, send_data);
       this->put_request_list(send_data, server, "JOIN");
     }
   }
@@ -354,21 +368,24 @@ namespace node {
   void* Node::ping(void){
     int stabilize = 0;
     while (true) {
-      sleep(2);
-      std::map<string,storage::peer_storage>::iterator it = request_list.begin();
-        while (it != request_list.end()) {
+        sleep(2);
+        auto unful = reqtab.clear_requests(3);
+        if (unful.size()){
+          for (auto kv : unful) {
+            int id = kv.id;
+            storage::Requests res = kv.res;
+            //TODO why does the copy of the pointers not work? because passing in members of struct does it by reference
+            //TODO change
+            unfulfilled_handler(id, res);
+          }
+        }
+        auto it = reqtab.request_storage.begin();
+        while (it != reqtab.request_storage.end()) {
           // cout << "ping\n";
           auto ps = it->second;
           client_send(ps.data_sent, ps.peer_sockaddr);
           // cout << it->first << " pinged." << '\n';
-          request_list[it->first].ping_count++;
-          if (ps.ping_count > 2){
-            //Check if needed acknowledged
-            // cout << "erased" << '\n';
-            it = request_list.erase(it);
-          } else {
-            ++it;
-          }
+          reqtab.request_storage[it->first].ping_count++;
         }
         if (++stabilize == 3) {
           stabilize_chord();
@@ -382,6 +399,19 @@ namespace node {
         // cout << this->print_successor() << '\n';
       }
     return NULL;
+  }
+
+  void Node::unfulfilled_handler(int id, storage::Requests res){
+    switch (res) {
+      case storage::Requests::join : 0;
+      // If didn't receive handshake, then throw error;
+      case storage::Requests::handshake : perror("no partner response");
+      /*If didn't receive stabilize response, then:
+        successor is down. Find new successor.
+      */
+      case storage::Requests::stabilize : 2;
+      case storage::Requests::disconnect : 3;
+    }
   }
 
   int Node::client_send(string data, sockaddr_in client_sockaddr){
@@ -405,7 +435,7 @@ namespace node {
       ps.response_needed = response;
       //TODO(add unique identifier to message)
       string ip_addr = inet_ntoa(client_sockaddr.sin_addr);
-      request_list[ip_addr + response] = ps;
+//      reqtab[ip_addr + response] = ps;
       ro.s = 1;
       return ro;
     }

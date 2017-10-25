@@ -39,7 +39,7 @@ namespace node {
     int key_space[2];
     map<size_t, string> storage;
     int num_clients = 0;
-    map<const string, storage::peer_storage> request_list;
+    storage::RequestTable reqtab;
     //TOPOLOGY MAP
     storage::peer_list peers;
     bool joining = false;
@@ -52,6 +52,7 @@ namespace node {
     static void* callPingFunction(void *arg) { return ((Node*)arg)->ping(); }
     static void* callServerFunction(void *arg) { return ((Node*)arg)->server(); }
     void* ping(void);
+    void unfulfilled_handler(int id, storage::Requests res);
     void* server(void);
     commands::ro<string> disconnect();
     int* get_keyspace();

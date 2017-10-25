@@ -4,15 +4,16 @@
 #include <netinet/in.h>
 #include <map>
 #include <vector>
+#include <queue>
 #include <string>
 #include <iostream>
 
 namespace storage {
 
   //TODO move to different namespace
-  typedef enum {
-    join, handshake, stabilize, disconnect
-  } Requests;
+  enum class Requests {
+    join, handshake, stabilize, notify, disconnect
+  };
 
   struct request_id {
     int id;
@@ -57,12 +58,12 @@ struct peer_list {
 };
 
 class RequestTable {
-private:
-  std::map<request_id, peer_storage> request_storage;
 public:
+  std::map<request_id, peer_storage> request_storage;
+
   //add a request
-  int add_request(int id, Requests res, sockaddr_in peer_sockaddr,
-                  Requests req, std::string data_sent) {
+  int add_request(int id, Requests req, Requests res, sockaddr_in peer_sockaddr,
+                   std::string data_sent) {
     request_id r; r.id = id; r.res = res;
     struct peer_storage ps; ps.peer_sockaddr = peer_sockaddr; ps.request = req;
     ps.data_sent = data_sent;
@@ -105,6 +106,8 @@ public:
 
 class RoutingTable {
 private:
+  //Queue of successors
+  std::queue <successor> successor_list;
   std::map<int, successor> fingers;
   //Sets the number of bytes in keyspace
   successor s;
@@ -116,6 +119,7 @@ public:
   RoutingTable(int id) : id(id) {
     s.id = id;
     fingers[1] = s;
+    successor_list.push(s);
   }
   successor find_successor(int k, int * opt_flag) {
     bool member = check_membership(id, s.id, k);
@@ -169,7 +173,7 @@ public:
     p.id = id;
     p.peer_sockaddr = address;
   }
-  successor get_successor(){
+  successor get_successor() {
     //TODO: combine with above functions
       return s;
   }
@@ -180,7 +184,7 @@ public:
   successor get_closest_node(int k){
     std::map<int,storage::successor>::iterator it = fingers.end();
     while (it != fingers.begin()) {
-      bool member = check_membership(it->first, id, k);
+      bool member = check_membership(it->second.id, id, k);
       if (member) {
         return it->second;
       }
@@ -189,6 +193,10 @@ public:
       }
     }
     return get_successor();
+  }
+  void successor_fail(){
+    successor_list.pop();
+    s = successor_list.front();
   }
   successor fix_fingers(int nf) {
     //int * opt;
