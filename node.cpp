@@ -64,12 +64,8 @@ namespace node {
     string send_data = id + ':';
     sd.ori = "NAN";
     sd.reqres = "REQ";
-    string ip_addr = inet_ntoa(client_sockaddr.sin_addr);
-    //TODO replace with hash table
-
     if (comm.option == "HANDSHAKE_CHORD") {
       //TODO send reshuffled data
-      //request_list.erase(ip_addr + "JOIN");
       auto sid = this->query_chord(stoi(comm.data[0]));
       if (!sid.s){
         /*
@@ -147,9 +143,6 @@ namespace node {
           rn.data = sd.to_string();
           rn.peer_sockaddr = s.peer_sockaddr;
           rn.err = 1;
-          if (chord_id == 4){
-            cout << sd.to_string() << endl;
-          }
           return rn;
         }
         //Notify successors predecessor
@@ -163,7 +156,6 @@ namespace node {
       }
     }
     else if (comm.option == "SET_SUCCESSOR") {
-      //request_list.erase(ip_addr);
       struct sockaddr_in server;
       server.sin_port = htons(stoi(comm.data[1]));
       server.sin_family = AF_INET;
@@ -178,9 +170,6 @@ namespace node {
       return rn;
     }
     else if (comm.option == "NOTIFY_CHORD") {
-      if (chord_id == 1){
-        cout << comm.to_string() << endl;
-      }
       if (rt.notify_check(stoi(comm.id))){
         rt.update_predecessor(stoi(comm.id), client_sockaddr);
       }
@@ -342,23 +331,37 @@ namespace node {
     }
     else if (comm.option == "UPDATE_SUCCESSOR_LIST"){
       if (comm.reqres == "REQ") {
+        sd.option = "UPDATE_SUCCESSOR_LIST";
+        sd.reqres = "RES";
         auto ss = rt.successor_list_front();
         sd.data.push_back(to_string(ss.id));
         sd.data.push_back(to_string(ntohs(ss.peer_sockaddr.sin_port)));
         rn.data = sd.to_string();
         rn.peer_sockaddr = client_sockaddr;
         rn.err = 1;
+        return rn;
       }
       else if (comm.reqres == "RES"){
-        storage::successor s;
-        s.id = stoi(comm.data[0]);
+        storage::successor ss;
+        ss.id = stoi(comm.data[0]);
         struct sockaddr_in server;
         server.sin_port = htons(stoi(comm.data[1]));
         server.sin_family = AF_INET;
         server.sin_addr.s_addr = inet_addr("127.0.0.1");
-        s.peer_sockaddr = server;
-        rt.successor_list_update(s);
+        ss.peer_sockaddr = server;
+        rt.successor_list_update(ss);
+        reqtab.remove_request(stoi(comm.id), storage::Requests::update);
+        rn.err = -1;
+        return rn;
       }
+    }
+    else if (comm.option == "ALIVE_CHECK") {
+      sd.reqres = "RES";
+      sd.option = "ALIVE_CHECK";
+      rn.data = sd.to_string();
+      rn.peer_sockaddr = client_sockaddr;
+      rn.err = 1;
+      return rn;
     }
     else {
       // cout << "Unknown Command" << '\n';
@@ -378,8 +381,8 @@ namespace node {
     send_data += to_string(chord_id);
     int csstatus = client_send(send_data, server);
     if(csstatus){
+      //TODO this should be other chords id?
       reqtab.add_request(chord_id, storage::Requests::join, storage::Requests::handshake, server, send_data);
-      //this->put_request_list(send_data, server, "JOIN");
     }
   }
 
@@ -397,10 +400,22 @@ namespace node {
     }
   }
 
+  void Node::successor_list_update(){
+    string sd = print_chord_id() + ':';
+    sd += "NAN:UPDATE_SUCCESSOR_LIST:REQ:";
+    cout << sd << endl;
+    auto s = rt.get_successor();
+    reqtab.add_request(s.id, storage::Requests::notify, storage::Requests::update, s.peer_sockaddr, sd);
+    if (s.id != chord_id) {
+      client_send(sd, s.peer_sockaddr);
+    }
+  }
+
   void* Node::ping(void){
     int stabilize = 0;
+    int update_check = 0;
     while (true) {
-        sleep(2);
+        sleep(5);
         auto unful = reqtab.clear_requests(3);
         if (unful.size()){
           for (auto kv : unful) {
@@ -412,22 +427,23 @@ namespace node {
         }
         auto it = reqtab.request_storage.begin();
         while (it != reqtab.request_storage.end()) {
-          // cout << "ping\n";
           auto ps = it->second;
-          client_send(ps.data_sent, ps.peer_sockaddr);
+          if (!ps.erase) {
+            client_send(ps.data_sent, ps.peer_sockaddr);
+          }
           reqtab.request_storage[it->first].ping_count++;
           ++it;
         }
         if (++stabilize == 3) {
+          //todo split
           stabilize_chord();
           stabilize = 1;
         }
-        //Fix fix_fingers
-        //Ping all the addresses in the fingers table
-        //if after three pings the table hasn't acknowledged, then set the value as nil
-        //rt.fix_fingers(fix);
-        //fix = ++fix % M;
-        // cout << this->print_successor() << '\n';
+        if (++update_check == 6){
+          successor_list_update();
+          update_check = 1;
+        }
+        //TODO: fix fingers
       }
     return NULL;
   }
@@ -441,7 +457,8 @@ namespace node {
       /*If didn't receive stabilize response, then:
         successor is down. Find new successor.
       */
-      case storage::Requests::stabilize : rt.successor_fail(); break;
+      case storage::Requests::alive : rt.successor_fail(); break;
+      case storage::Requests::update : rt.successor_fail(); break;
       case storage::Requests::disconnect : 3; break;
     }
   }
@@ -457,21 +474,6 @@ namespace node {
     // cout << "client_sendmodule sent " << data << " to " << ntohs(client_sockaddr.sin_port) << '\n';
     return 1;
   }
-
-  commands::ro<string> Node::put_request_list(string send_data,
-    sockaddr_in client_sockaddr,
-    string response) {
-      commands::ro<string> ro;
-      storage::peer_storage ps;
-      ps.peer_sockaddr = client_sockaddr;
-      ps.data_sent = send_data;
-      ps.response_needed = response;
-      //TODO(add unique identifier to message)
-      string ip_addr = inet_ntoa(client_sockaddr.sin_addr);
-//      reqtab[ip_addr + response] = ps;
-      ro.s = 1;
-      return ro;
-    }
 
     void* Node::server(void) {
       char buf [ 1024 ];

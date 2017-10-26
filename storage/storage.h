@@ -12,7 +12,7 @@ namespace storage {
 
   //TODO move to different namespace
   enum class Requests {
-    join, handshake, stabilize, notify, disconnect
+    join, handshake, stabilize, notify, disconnect, update, alive
   };
 
   struct request_id {
@@ -39,6 +39,8 @@ struct peer_storage {
   //TODO: deprecate string in favor of enum
   std::string response_needed;
   int ping_count = 0;
+  int res_needed = 0;
+  bool erase = false;
 };
 
 struct peer {
@@ -85,7 +87,10 @@ public:
   //if request has been fulfilled, remove it
   int remove_request(int id, Requests res) {
     request_id r; r.id = id; r.res = res;
-    request_storage.erase(r);
+    auto v = request_storage.find(r);
+    if (v != request_storage.end()){
+      v->second.erase = true;
+    }
     return 1;
   };
   //for requests over a certain threshold, remove all of them
@@ -93,7 +98,12 @@ public:
     std::vector<request_id> unfulfilled_reqs;
     auto it = request_storage.begin();
     while (it != request_storage.end()) {
-      if (it->second.ping_count > ping_number){
+      if (it->second.erase == true){
+        //Two different iterator patterns for deletion.
+        //Key is don't invalidate the reference of the pointer object.
+        request_storage.erase(it++);
+      }
+      else if (it->second.ping_count > ping_number){
         unfulfilled_reqs.push_back(it->first);
         it = request_storage.erase(it);
       } else {
@@ -108,10 +118,12 @@ public:
 class RoutingTable {
 private:
   //Queue of successors
+  //TODO use this but need different data structure
   std::queue <successor> successor_list;
   std::map<int, successor> fingers;
   //Sets the number of bytes in keyspace
   successor s;
+  successor next;
   //predecessor
   successor p;
   int id;
@@ -195,21 +207,35 @@ public:
   }
 
   void successor_fail(){
-    successor_list.pop();
-    if (successor_list.empty()){
+    perror("successor fail");
+    //successor_list.pop();
+
+    if (next.id == 0) {
       perror("node has no successors");
       //setting predecssor as successor
       p = s;
+      return;
     }
-    s = successor_list.front();
+    s = next;
+    //s = successor_list.front();
   }
-  void successor_list_update(successor s){
-    successor_list.push(s);
+  void successor_list_update(successor suc){
+/*
+    if (successor_list.back().id != suc.id) {
+      std::cout << id <<" slu updated " << suc.id << std::endl;
+      std::cout << successor_list.back().id << std::endl;
+      successor_list.push(suc);
+    }
+    */
+    if (next.id != suc.id) {
+      next = suc;
+    }
   };
   //copy over successor list
   //need to use an iterable queue, TODO switch to deque
   successor successor_list_front(){
-    return successor_list.front();
+    //return successor_list.front();
+    return s;
   }
 
   successor fix_fingers(int nf) {

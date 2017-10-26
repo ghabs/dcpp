@@ -95,10 +95,10 @@ namespace node {
     string print_chord_id() {
       return to_string(chord_id);
     }
-    commands::ro<string> put_request_list(string send_data, sockaddr_in client_sockaddr, string response);
     commands::ro<string> reshuffle();
     int status_socket();
     string current_time();
+    void successor_list_update();
     //CHORD: FIND NEAREST NODE ON RING
     int find_successor();
     string print_successor(){
