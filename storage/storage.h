@@ -47,6 +47,7 @@ struct peer {
 };
 
 //RENAME successor and all peer
+//Serialize function
 struct successor {
   int id;
   sockaddr_in peer_sockaddr;
@@ -134,7 +135,6 @@ public:
     }
   }
   bool check_membership(int a, int b, int c) {
-    std::cout << std::to_string(a) << ':' << std::to_string(b) << ':' << std::to_string(c) << '\n';
     //CHECK THIS DOESN"T SEEM RIGHT, should be false
     if (a == b) {
       return true;
@@ -153,7 +153,7 @@ public:
   }
   bool stabilize_check(int sip, sockaddr_in address){
     if (id == sip){
-      return false;
+      return true;
     }
     if (s.id == sip) {
       return false;
@@ -165,7 +165,6 @@ public:
     return false;
   }
   void update_successor(int id, sockaddr_in address) {
-    std::cout << "new successor" + std::to_string(id) << '\n';
     s.id = id;
     s.peer_sockaddr = address;
   }
@@ -194,10 +193,25 @@ public:
     }
     return get_successor();
   }
+
   void successor_fail(){
     successor_list.pop();
+    if (successor_list.empty()){
+      perror("node has no successors");
+      //setting predecssor as successor
+      p = s;
+    }
     s = successor_list.front();
   }
+  void successor_list_update(successor s){
+    successor_list.push(s);
+  };
+  //copy over successor list
+  //need to use an iterable queue, TODO switch to deque
+  successor successor_list_front(){
+    return successor_list.front();
+  }
+
   successor fix_fingers(int nf) {
     //int * opt;
     //Check if still online

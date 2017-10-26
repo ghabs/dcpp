@@ -81,6 +81,8 @@ map
 -
 vector
 -
+queue
+-
 string
 -
 iostream

@@ -89,6 +89,10 @@ netinet/in.h
 -
 map
 -
+vector
+-
+queue
+-
 string
 -
 iostream

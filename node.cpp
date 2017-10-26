@@ -66,22 +66,21 @@ namespace node {
     sd.reqres = "REQ";
     string ip_addr = inet_ntoa(client_sockaddr.sin_addr);
     //TODO replace with hash table
+
     if (comm.option == "HANDSHAKE_CHORD") {
       //TODO send reshuffled data
       //request_list.erase(ip_addr + "JOIN");
       auto sid = this->query_chord(stoi(comm.data[0]));
       if (!sid.s){
-        //TODO REDIRECT TO NEIGHBOR, HAVE THEM SEARCH
-        //cout << "not neighor" << '\n';
-        //rn.err = -1;
-        //return rn;
+        /*
         sd.data.push_back(comm.data[0]);
         sd.ori = to_string(ntohs(client_sockaddr.sin_port));
         sd.option = "HANDSHAKE_CHORD";
         sd.reqres = "REQ";
         rn.data = sd.to_string();
         rn.peer_sockaddr = sid.data.peer_sockaddr;
-        rn.err = 1;
+        */
+        rn.err = -1;
         return rn;
       }
       if (sid.data.id == chord_id) {
@@ -90,6 +89,7 @@ namespace node {
         sd.data.push_back(to_string(chord_id));
         sd.data.push_back(to_string(_port));
         rn.data = sd.to_string();
+        cout << "set successor " << comm.data[0] << endl;
         if (comm.ori == "NAN") {
           rt.update_predecessor(stoi(comm.data[0]), client_sockaddr);
           rn.peer_sockaddr = client_sockaddr;
@@ -131,19 +131,35 @@ namespace node {
       }
       if (comm.reqres == "RES") {
         //TODO(CHECK again if should )
+      //  struct sockaddr_in server;
+      //  server.sin_port = htons(stoi(comm.data[1]));
+      //  server.sin_family = AF_INET;
+      //  server.sin_addr.s_addr = inet_addr("127.0.0.1");
+        auto s = rt.get_successor();
         struct sockaddr_in server;
         server.sin_port = htons(stoi(comm.data[1]));
         server.sin_family = AF_INET;
         server.sin_addr.s_addr = inet_addr("127.0.0.1");
         if (rt.stabilize_check(stoi(comm.data[0]), server)){
+          auto s = rt.get_successor();
           sd.option = "NOTIFY_CHORD";
           sd.reqres = "REQ";
           rn.data = sd.to_string();
-          rn.peer_sockaddr = server;
+          rn.peer_sockaddr = s.peer_sockaddr;
           rn.err = 1;
+          if (chord_id == 4){
+            cout << sd.to_string() << endl;
+          }
           return rn;
         }
         //Notify successors predecessor
+        sd.option = "NOTIFY_CHORD";
+        sd.reqres = "REQ";
+        rn.data = sd.to_string();
+        cout << s.peer_sockaddr.sin_port << endl;
+        rn.peer_sockaddr = s.peer_sockaddr;
+        rn.err = 1;
+        return rn;
       }
     }
     else if (comm.option == "SET_SUCCESSOR") {
@@ -162,8 +178,10 @@ namespace node {
       return rn;
     }
     else if (comm.option == "NOTIFY_CHORD") {
+      if (chord_id == 1){
+        cout << comm.to_string() << endl;
+      }
       if (rt.notify_check(stoi(comm.id))){
-        cout << "notify check pass" << '\n';
         rt.update_predecessor(stoi(comm.id), client_sockaddr);
       }
       commands::ro<string> rd = this->reshuffle_chord(stoi(comm.id));
@@ -255,7 +273,6 @@ namespace node {
       sd.data.push_back(comm.data[0]);
       rn.data = sd.to_string();
       rn.peer_sockaddr = sid.data.peer_sockaddr;
-      cout << "sending get_chord to " << sid.data.id << '\n';
       //TODO change err system
       rn.err = 1;
       return rn;
@@ -280,7 +297,6 @@ namespace node {
       return rn;
     }
     else if (comm.option == "GET_CHORD") {
-      cout << "get chord" << this->print_chord_id() << '\n';
       if (comm.reqres == "RES") {
         cout << "Got VALUE Back" << comm.to_string() << endl;
         rn.err = -1;
@@ -303,8 +319,9 @@ namespace node {
     else if (comm.option == "GET_STATS") {
       cout << "id:"<< this->print_chord_id() << ":suc:"<< this->print_successor() << ":pre:" << this->print_predecessor()<< '\n';
       //sd.data.push_back("Chord Id: " + this->print_chord_id());
+      rn.data = "" + this->print_chord_id() + ":" + this->print_successor() + ":" + this->print_predecessor();
       rn.peer_sockaddr = client_sockaddr;
-      rn.err = -1;
+      rn.err = 1;
       return rn;
     }
     else if (comm.option == "DISCONNECT") {
@@ -325,7 +342,22 @@ namespace node {
     }
     else if (comm.option == "UPDATE_SUCCESSOR_LIST"){
       if (comm.reqres == "REQ") {
-
+        auto ss = rt.successor_list_front();
+        sd.data.push_back(to_string(ss.id));
+        sd.data.push_back(to_string(ntohs(ss.peer_sockaddr.sin_port)));
+        rn.data = sd.to_string();
+        rn.peer_sockaddr = client_sockaddr;
+        rn.err = 1;
+      }
+      else if (comm.reqres == "RES"){
+        storage::successor s;
+        s.id = stoi(comm.data[0]);
+        struct sockaddr_in server;
+        server.sin_port = htons(stoi(comm.data[1]));
+        server.sin_family = AF_INET;
+        server.sin_addr.s_addr = inet_addr("127.0.0.1");
+        s.peer_sockaddr = server;
+        rt.successor_list_update(s);
       }
     }
     else {
@@ -347,11 +379,11 @@ namespace node {
     int csstatus = client_send(send_data, server);
     if(csstatus){
       reqtab.add_request(chord_id, storage::Requests::join, storage::Requests::handshake, server, send_data);
-      this->put_request_list(send_data, server, "JOIN");
+      //this->put_request_list(send_data, server, "JOIN");
     }
   }
 
-  int Node::stabilize_chord(){
+  int Node::stabilize_chord() {
     string sd = print_chord_id() + ':';
     auto s = rt.get_successor();
     auto p = rt.get_predecessor();
@@ -374,8 +406,7 @@ namespace node {
           for (auto kv : unful) {
             int id = kv.id;
             storage::Requests res = kv.res;
-            //TODO why does the copy of the pointers not work? because passing in members of struct does it by reference
-            //TODO change
+            //TODO change from copies
             unfulfilled_handler(id, res);
           }
         }
@@ -384,8 +415,8 @@ namespace node {
           // cout << "ping\n";
           auto ps = it->second;
           client_send(ps.data_sent, ps.peer_sockaddr);
-          // cout << it->first << " pinged." << '\n';
           reqtab.request_storage[it->first].ping_count++;
+          ++it;
         }
         if (++stabilize == 3) {
           stabilize_chord();
@@ -401,16 +432,17 @@ namespace node {
     return NULL;
   }
 
-  void Node::unfulfilled_handler(int id, storage::Requests res){
+  void Node::unfulfilled_handler(int id, storage::Requests res) {
     switch (res) {
-      case storage::Requests::join : 0;
+      case storage::Requests::join : 0; break;
       // If didn't receive handshake, then throw error;
       case storage::Requests::handshake : perror("no partner response");
+                                          break;
       /*If didn't receive stabilize response, then:
         successor is down. Find new successor.
       */
-      case storage::Requests::stabilize : 2;
-      case storage::Requests::disconnect : 3;
+      case storage::Requests::stabilize : rt.successor_fail(); break;
+      case storage::Requests::disconnect : 3; break;
     }
   }
 
@@ -419,6 +451,7 @@ namespace node {
     if ((numbytes = sendto(server_socket.get_sock_descriptor(), data.data(), data.size(), 0,
     (sockaddr *) &client_sockaddr, sizeof(client_sockaddr))) == -1) {
       perror("talker: sendto");
+      cout << data << endl;
       return -1;
     }
     // cout << "client_sendmodule sent " << data << " to " << ntohs(client_sockaddr.sin_port) << '\n';
