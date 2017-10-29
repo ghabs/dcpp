@@ -216,25 +216,17 @@ public:
       p = s;
       return;
     }
+    std::cout << this->id << ':' << next.id << '\n';
     s = next;
     //s = successor_list.front();
   }
   void successor_list_update(successor suc){
-/*
-    if (successor_list.back().id != suc.id) {
-      std::cout << id <<" slu updated " << suc.id << std::endl;
-      std::cout << successor_list.back().id << std::endl;
-      successor_list.push(suc);
-    }
-    */
     if (next.id != suc.id) {
       next = suc;
     }
   };
-  //copy over successor list
-  //need to use an iterable queue, TODO switch to deque
+
   successor successor_list_front(){
-    //return successor_list.front();
     return s;
   }
 

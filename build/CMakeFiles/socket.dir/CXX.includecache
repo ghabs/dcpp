@@ -20,3 +20,19 @@ fcntl.h
 iostream
 -
 
+/home/ghabs/Programming/cpp/node/socket/socket.h
+sys/types.h
+-
+sys/socket.h
+-
+netinet/in.h
+-
+netdb.h
+-
+unistd.h
+-
+string
+-
+arpa/inet.h
+-
+

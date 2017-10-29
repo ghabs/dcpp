@@ -24,7 +24,8 @@ using namespace std;
 
 namespace node {
   Node::Node(int port=4950, string partner_address = "127.0.0.1", int partner_port=3002, int chord_id=1)
-  : _partner_address(partner_address), _partner_port(partner_port), _port(port), chord_id(chord_id), rt(chord_id) {
+  : _partner_address(partner_address), _partner_port(partner_port), _port(port),
+   chord_id(chord_id), rt(chord_id) {
 
     server_socket.create();
     rt.update_successor(chord_id, get_server_info());
@@ -55,19 +56,17 @@ namespace node {
 
   //TODO(): turn into struct of options
   node::rn_struct Node::remote_node_controller(const string option, sockaddr_in client_sockaddr) {
-    //handle incoming connection and parsed data
-    //call other internal functions
-    //send to other functions
     commands::Commands comm(option);
     commands::Commands sd(to_string(chord_id));
     node::rn_struct rn;
-    string send_data = id + ':';
-    sd.ori = "NAN";
+    sd.ip = inet_addr("127.0.0.1");
+    sd.ori = to_string(htons(_port));
     sd.reqres = "REQ";
     if (comm.option == "HANDSHAKE_CHORD") {
       //TODO send reshuffled data
       auto sid = this->query_chord(stoi(comm.data[0]));
       if (!sid.s){
+        //TODO check how to set this up
         /*
         sd.data.push_back(comm.data[0]);
         sd.ori = to_string(ntohs(client_sockaddr.sin_port));
@@ -86,21 +85,16 @@ namespace node {
         sd.data.push_back(to_string(_port));
         rn.data = sd.to_string();
         cout << "set successor " << comm.data[0] << endl;
-        if (comm.ori == "NAN") {
-          rt.update_predecessor(stoi(comm.data[0]), client_sockaddr);
-          rn.peer_sockaddr = client_sockaddr;
-        }
-        else {
-          struct sockaddr_in server;
-          server.sin_port = htons(stoi(comm.ori));
-          server.sin_family = AF_INET;
-          server.sin_addr.s_addr = inet_addr("127.0.0.1");
-          rt.update_predecessor(stoi(comm.data[0]), server);
-          rn.peer_sockaddr = server;
-        }
+        struct sockaddr_in server;
+        server.sin_port = htons(stoi(comm.ori));
+        server.sin_family = AF_INET;
+        server.sin_addr.s_addr = inet_addr("127.0.0.1");
+        rt.update_predecessor(stoi(comm.data[0]), server);
+        rn.peer_sockaddr = server;
         rn.err = 1;
         return rn;
       }
+      //TODO should be this nodes successor
       sd.ori = comm.ori;
       sd.option = "SET_SUCCESSOR";
       sd.reqres = "RES";
@@ -109,7 +103,6 @@ namespace node {
       rn.data = sd.to_string();
       rn.peer_sockaddr = sid.data.peer_sockaddr;
       rn.err = 1;
-      //check if need to use ori
       rt.update_successor(stoi(comm.data[0]), client_sockaddr);
       return rn;
     }
@@ -126,17 +119,12 @@ namespace node {
         return rn;
       }
       if (comm.reqres == "RES") {
-        //TODO(CHECK again if should )
-      //  struct sockaddr_in server;
-      //  server.sin_port = htons(stoi(comm.data[1]));
-      //  server.sin_family = AF_INET;
-      //  server.sin_addr.s_addr = inet_addr("127.0.0.1");
         auto s = rt.get_successor();
         struct sockaddr_in server;
         server.sin_port = htons(stoi(comm.data[1]));
         server.sin_family = AF_INET;
         server.sin_addr.s_addr = inet_addr("127.0.0.1");
-        if (rt.stabilize_check(stoi(comm.data[0]), server)){
+        if (rt.stabilize_check(stoi(comm.data[0]), server)) {
           auto s = rt.get_successor();
           sd.option = "NOTIFY_CHORD";
           sd.reqres = "REQ";
@@ -329,7 +317,7 @@ namespace node {
         rn.err = -2;
         return rn;
     }
-    else if (comm.option == "UPDATE_SUCCESSOR_LIST"){
+    else if (comm.option == "UPDATE_SUCCESSOR_LIST") {
       if (comm.reqres == "REQ") {
         sd.option = "UPDATE_SUCCESSOR_LIST";
         sd.reqres = "RES";
@@ -341,12 +329,13 @@ namespace node {
         rn.err = 1;
         return rn;
       }
-      else if (comm.reqres == "RES"){
+      else if (comm.reqres == "RES") {
         storage::successor ss;
         ss.id = stoi(comm.data[0]);
         struct sockaddr_in server;
         server.sin_port = htons(stoi(comm.data[1]));
         server.sin_family = AF_INET;
+        //TODO: Replace with ip addr
         server.sin_addr.s_addr = inet_addr("127.0.0.1");
         ss.peer_sockaddr = server;
         rt.successor_list_update(ss);
@@ -376,8 +365,8 @@ namespace node {
     server.sin_port = htons(_partner_port);
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = inet_addr("127.0.0.1");
-    string send_data = to_string(chord_id) + ':';
-    send_data += "NAN:HANDSHAKE_CHORD:REQ:";
+    string send_data = to_string(chord_id) + ':' + "127.0.0.1" + ':' + to_string((_port));
+    send_data += ":HANDSHAKE_CHORD:REQ:";
     send_data += to_string(chord_id);
     int csstatus = client_send(send_data, server);
     if(csstatus){
@@ -387,12 +376,12 @@ namespace node {
   }
 
   int Node::stabilize_chord() {
-    string sd = print_chord_id() + ':';
+    string send_data = to_string(chord_id) + ':' + "127.0.0.1" + ':' + to_string(ntohs(_port));
     auto s = rt.get_successor();
     auto p = rt.get_predecessor();
     if (s.id != chord_id) {
-      sd += "NAN:STABILIZE_CHORD:REQ:";
-      client_send(sd, s.peer_sockaddr);
+      send_data += ":STABILIZE_CHORD:REQ:";
+      client_send(send_data, s.peer_sockaddr);
       return 1;
     }
     if ((s.id == chord_id) && (p.id != chord_id)){
@@ -401,13 +390,12 @@ namespace node {
   }
 
   void Node::successor_list_update(){
-    string sd = print_chord_id() + ':';
-    sd += "NAN:UPDATE_SUCCESSOR_LIST:REQ:";
-    cout << sd << endl;
+    string send_data = to_string(chord_id) + ':' + "127.0.0.1" + ':' + to_string(ntohs(_port));
+    send_data += ":UPDATE_SUCCESSOR_LIST:REQ:";
     auto s = rt.get_successor();
-    reqtab.add_request(s.id, storage::Requests::notify, storage::Requests::update, s.peer_sockaddr, sd);
     if (s.id != chord_id) {
-      client_send(sd, s.peer_sockaddr);
+      //TODO change in add, might be incorrect
+      reqtab.add_request(s.id, storage::Requests::notify, storage::Requests::update, s.peer_sockaddr, send_data);
     }
   }
 
@@ -457,7 +445,6 @@ namespace node {
       /*If didn't receive stabilize response, then:
         successor is down. Find new successor.
       */
-      case storage::Requests::alive : rt.successor_fail(); break;
       case storage::Requests::update : rt.successor_fail(); break;
       case storage::Requests::disconnect : 3; break;
     }

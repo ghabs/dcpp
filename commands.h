@@ -7,7 +7,6 @@
 
 using namespace std;
 namespace commands {
-  //TODO: refactor to parent child classes
   class Commands {
   public:
     //TODO(): ADD Validation
@@ -16,36 +15,36 @@ namespace commands {
       istringstream split(message);
       string item;
       int i = 0;
-      for (string each; getline(split, each, ':'); i++){
-        if (i == 0) {
-          id = each;
-        }
-        else if (i == 1) {
-          ori = each;
-        }
-        else if (i == 2) {
-          option = each;
-        } else if (i == 3) {
-          reqres = each;
-        }
-        else {
-          data.push_back(each);
+      for (string tkn; getline(split, tkn, ':'); i++) {
+        switch (i) {
+          case 0: id = tkn; break;
+          case 1: ip = tkn; break;
+          //TODO change to port
+          case 2: ori = tkn; break;
+          case 3: option = tkn; break;
+          //TODO change to rs
+          case 4: reqres = tkn; break;
+          default: data.push_back(tkn); break;
         }
       };
       return 1;
     }
-  string id;
-  string ori;
-  string option;
-  string reqres;
-  vector<string> data;
-  string to_string() {
-    string sd = id + ':' + ori + ':' + option + ':' + reqres;
-    for (string v: data){
-      sd += (':' + v);
-    }
-    return sd;
-  };
+    //TODO add timestamp
+    //TODO verify string values in this class
+    string id;
+    string ip;
+    string ori;
+    string option;
+    string reqres;
+    vector<string> data;
+    string to_string() {
+      string sd = id + ':' + ip + ':' + ori
+      + ':' + option + ':' + reqres;
+      for (string v: data){
+        sd += (':' + v);
+      }
+      return sd;
+    };
   };
   template<typename a>
   struct ro {
