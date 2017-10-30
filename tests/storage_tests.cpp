@@ -10,7 +10,7 @@ struct TestFixture
   storage::RoutingTable rt;
 
   TestFixture()
-  : rt(5)
+  : rt(5, 6)
   {}
 
   ~TestFixture() = default;
@@ -47,17 +47,26 @@ BOOST_AUTO_TEST_CASE(request_table)
   sserver.sin_port = htons(3000);
   sserver.sin_family = AF_INET;
   storage::RequestTable reqt;
-  Requests r = join;
-  Requests s = handshake;
+  auto r = storage::Requests::join;
+  auto s =  storage::Requests::handshake;
 
-  reqt.add_request(1, s, sserver, r, "tests");
+  reqt.add_request(1, s, r, sserver, "tests");
   BOOST_CHECK(reqt.get_size() == 1);
   cout << reqt.get_size() << '\n';
-  reqt.remove_request(1, s);
-  BOOST_CHECK(reqt.get_size() == 0);
-  reqt.add_request(1, s, sserver, r, "tests");
+  //reqt.remove_request(1, s);
+  //BOOST_CHECK(reqt.get_size() == 0);
+  //reqt.add_request(1, s, r, sserver, "tests");
   auto unful = reqt.clear_requests(0);
   BOOST_CHECK(unful.size() == 1);
+}
+
+BOOST_AUTO_TEST_CASE(RoutingTable){
+  struct sockaddr_in sserver;
+  sserver.sin_port = htons(3000);
+  sserver.sin_family = AF_INET;
+  rt.update_successor(7, sserver);
+  cout << rt.get_finger(1).id << '\n';
+  BOOST_CHECK(rt.get_finger(1).id == 7);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

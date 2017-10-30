@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(command_struct)
 
 BOOST_AUTO_TEST_CASE(check_membership)
 {
-  storage::RoutingTable rt(1);
+  storage::RoutingTable rt(1, 5);
   BOOST_CHECK(rt.check_membership(1,1,0));
   BOOST_CHECK(rt.check_membership(2, 1, 0));
   BOOST_CHECK(rt.check_membership(2, 4, 3));

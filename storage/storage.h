@@ -103,7 +103,7 @@ public:
         //Key is don't invalidate the reference of the pointer object.
         request_storage.erase(it++);
       }
-      else if (it->second.ping_count > ping_number){
+      else if (it->second.ping_count >= ping_number){
         unfulfilled_reqs.push_back(it->first);
         it = request_storage.erase(it);
       } else {
@@ -127,13 +127,17 @@ private:
   //predecessor
   successor p;
   int id;
+  int keyspace;
 
 public:
-  RoutingTable(int id) : id(id) {
+  RoutingTable(int id, int keyspace) : id(id), keyspace(keyspace) {
     s.id = id;
-    fingers[1] = s;
     successor_list.push(s);
+/*    for (size_t i = 0; i < keyspace; i++) {
+      fingers[i] = s;
+    } */
   }
+
   successor find_successor(int k, int * opt_flag) {
     bool member = check_membership(id, s.id, k);
     if (member) {
@@ -146,6 +150,7 @@ public:
       return n;
     }
   }
+
   bool check_membership(int a, int b, int c) {
     //CHECK THIS DOESN"T SEEM RIGHT, should be false
     if (a == b) {
@@ -157,12 +162,14 @@ public:
       return (a <= c || c < b);
     }
   }
+
   bool notify_check(int k){
     if (!p.id){
       return true;
     }
     return check_membership(p.id, id, k);
   }
+
   bool stabilize_check(int sip, sockaddr_in address){
     if (id == sip){
       return true;
@@ -176,9 +183,12 @@ public:
     }
     return false;
   }
+
   void update_successor(int id, sockaddr_in address) {
     s.id = id;
     s.peer_sockaddr = address;
+    //TODO: merge this
+    fingers[0] = s;
   }
   void update_predecessor(int id, sockaddr_in address) {
     p.id = id;
@@ -194,7 +204,7 @@ public:
   }
   successor get_closest_node(int k){
     std::map<int,storage::successor>::iterator it = fingers.end();
-    while (it != fingers.begin()) {
+/*    while (it != fingers.begin()) {
       bool member = check_membership(it->second.id, id, k);
       if (member) {
         return it->second;
@@ -202,7 +212,7 @@ public:
       else {
         it++;
       }
-    }
+    } */
     return get_successor();
   }
 
@@ -230,12 +240,17 @@ public:
     return s;
   }
 
-  successor fix_fingers(int nf) {
-    //int * opt;
-    //Check if still online
-    //Ping that address, see if it returns traffic
-    //fingers[nf] = find_successor(id + (2^(nf-1)), opt);
-    return fingers[nf];
+  successor get_finger(int id){
+    return fingers[id];
+  }
+
+  void update_finger(int id, successor finger){
+    fingers[id] = finger;
+  }
+
+  void fix_fingers(int nf) {
+    int * opt;
+    fingers[nf] = find_successor(id + (2^(nf-1)), opt);
   }
 };
 }//namespace storage;

@@ -25,7 +25,7 @@ using namespace std;
 namespace node {
   Node::Node(int port=4950, string partner_address = "127.0.0.1", int partner_port=3002, int chord_id=1)
   : _partner_address(partner_address), _partner_port(partner_port), _port(port),
-   chord_id(chord_id), rt(chord_id) {
+   chord_id(chord_id), rt(chord_id, M) {
 
     server_socket.create();
     rt.update_successor(chord_id, get_server_info());
@@ -59,7 +59,7 @@ namespace node {
     commands::Commands comm(option);
     commands::Commands sd(to_string(chord_id));
     node::rn_struct rn;
-    sd.ip = inet_addr("127.0.0.1");
+    sd.ip = to_string(inet_addr("127.0.0.1"));
     sd.ori = to_string(htons(_port));
     sd.reqres = "REQ";
     if (comm.option == "HANDSHAKE_CHORD") {
@@ -84,7 +84,6 @@ namespace node {
         sd.data.push_back(to_string(chord_id));
         sd.data.push_back(to_string(_port));
         rn.data = sd.to_string();
-        cout << "set successor " << comm.data[0] << endl;
         struct sockaddr_in server;
         server.sin_port = htons(stoi(comm.ori));
         server.sin_family = AF_INET;
@@ -137,7 +136,6 @@ namespace node {
         sd.option = "NOTIFY_CHORD";
         sd.reqres = "REQ";
         rn.data = sd.to_string();
-        cout << s.peer_sockaddr.sin_port << endl;
         rn.peer_sockaddr = s.peer_sockaddr;
         rn.err = 1;
         return rn;
@@ -177,13 +175,12 @@ namespace node {
     }
     else if (comm.option == "QUERY_CHORD_PUT") {
       int key = this->hash_chord(comm.data[0]);
-      cout << key << '\n';
       auto sid = this->query_chord(key);
-      // cout << sid.data.id << '\n';
       if (!sid.s) {
         //Send to nearest neighbor with query_chord command
         sd.data.push_back(comm.data[0]);
-        sd.ori = to_string(ntohs(client_sockaddr.sin_port));
+        sd.ip = comm.ip;
+        sd.ori = comm.ori;
         sd.option = "QUERY_CHORD_PUT";
         sd.reqres = "REQ";
         rn.data = sd.to_string();
@@ -193,7 +190,6 @@ namespace node {
       }
       if (sid.data.id == chord_id) {
         storage[key] = comm.data[0];
-        sd.ori = to_string(ntohs(client_sockaddr.sin_port));
         sd.option = "PUT_CHORD";
         sd.reqres = "RES";
         sd.data.push_back(to_string(key));
@@ -205,7 +201,8 @@ namespace node {
       }
       //Send to successor with PUT command
       auto s = rt.get_successor();
-      sd.ori = to_string(ntohs(client_sockaddr.sin_port));
+      sd.ip = comm.ip;
+      sd.ori = comm.ori;
       sd.option = "PUT_CHORD";
       sd.reqres = "REQ";
       sd.data.push_back(comm.data[0]);
@@ -217,14 +214,11 @@ namespace node {
     }
     else if (comm.option == "QUERY_CHORD_GET"){
       int key = stoi(comm.data[0]);
-      cout << "key" << to_string(key) << '\n';
       auto sid = this->query_chord(key);
       if (!sid.s){
-        //FORWARD TO NEIGHBOR NODE
-        //sid.data has neighbor node to check
-        //TODO write forward function
         sd.data.push_back(comm.data[0]);
-        sd.ori = to_string(ntohs(client_sockaddr.sin_port));
+        sd.ip = comm.ip;
+        sd.ori = comm.ori;
         sd.option = "QUERY_CHORD_GET";
         sd.reqres = "REQ";
         rn.data = sd.to_string();
@@ -233,18 +227,23 @@ namespace node {
         return rn;
       }
       if (sid.data.id == chord_id) {
-        sd.ori = to_string(ntohs(client_sockaddr.sin_port));
         sd.option = "QUERY_CHORD_GET";
         string value = storage[key];
         sd.reqres = "RES";
         sd.data.push_back(value);
         rn.data = sd.to_string();
-        rn.peer_sockaddr = client_sockaddr;
+        //TODO remove repeated code
+        struct sockaddr_in server;
+        server.sin_port = htons(stoi(comm.ori));
+        server.sin_family = AF_INET;
+        server.sin_addr.s_addr = inet_addr(comm.ip.c_str());
+        rn.peer_sockaddr = server;
         //TODO change err system
         rn.err = 1;
         return rn;
       }
-      sd.ori = to_string(ntohs(client_sockaddr.sin_port));
+      sd.ip = comm.ip;
+      sd.ori = comm.ori;
       sd.option = "GET_CHORD";
       sd.reqres = "REQ";
       sd.data.push_back(comm.data[0]);
@@ -256,39 +255,45 @@ namespace node {
     }
     else if (comm.option == "PUT_CHORD") {
       if (comm.reqres == "RES") {
-        cout << "Got Key Back" << comm.to_string() << endl;
+        cout << print_chord_id() << " Got Key Back: " << comm.to_string() << endl;
         rn.err = -1;
         return rn;
       }
       int key = this->hash_chord(comm.data[0]);
       storage[key] = comm.data[0];
-      sd.ori = to_string(ntohs(client_sockaddr.sin_port));
       sd.option = "PUT_CHORD";
       sd.reqres = "RES";
       sd.data.push_back(to_string(key));
+      sd.ip = comm.ip;
+      cout << comm.ip << '\n';
+      struct sockaddr_in server;
+      cout << comm.ori << '\n';
+      server.sin_port = htons(stoi(comm.ori));
+      server.sin_family = AF_INET;
+      server.sin_addr.s_addr = inet_addr(comm.ip.c_str());
       rn.data = sd.to_string();
-      //TODO: change it to go to original client
-      rn.peer_sockaddr = client_sockaddr;
-      //TODO change err system
+      rn.peer_sockaddr = server;
       rn.err = 1;
       return rn;
     }
     else if (comm.option == "GET_CHORD") {
       if (comm.reqres == "RES") {
-        cout << "Got VALUE Back" << comm.to_string() << endl;
+        cout << print_chord_id() << "Got VALUE Back" << comm.to_string() << endl;
         rn.err = -1;
         return rn;
       }
       int key = stoi(comm.data[0]);
-      cout << "key" << key << '\n';
       string value = storage[key];
-      cout << "value" << value << '\n';
       sd.option = "GET_CHORD";
       sd.reqres = "RES";
       sd.data.push_back(value);
       rn.data = sd.to_string();
       //TODO: change it to go to original client
-      rn.peer_sockaddr = client_sockaddr;
+      struct sockaddr_in server;
+      server.sin_port = htons(stoi(comm.ori));
+      server.sin_family = AF_INET;
+      server.sin_addr.s_addr = inet_addr(comm.ip.c_str());
+      rn.peer_sockaddr = server;
       //TODO change err system
       rn.err = 1;
       return rn;
