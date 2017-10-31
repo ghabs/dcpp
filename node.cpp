@@ -33,10 +33,11 @@ namespace node {
     //TODO(goldhaber): throw exception
     if (!server_socket.bind(port))
     {
-      // cout << "Could not bind to port." << '\n';
+      cout << "Could not bind to port." << '\n';
     }
     else {
-      // cout << "Node has bound to port " << port << '\n';
+      sockaddr_in socket_info = server_socket.get_socket_info();
+      _address = to_string(socket_info.sin_addr.s_addr);
     }
   }
   Node::~Node() {
@@ -59,8 +60,9 @@ namespace node {
     commands::Commands comm(option);
     commands::Commands sd(to_string(chord_id));
     node::rn_struct rn;
-    sd.ip = to_string(inet_addr("127.0.0.1"));
-    sd.ori = to_string(htons(_port));
+    sockaddr_in socket_info = server_socket.get_socket_info();
+    sd.ip = _address;
+    sd.ori = to_string(socket_info.sin_port);
     sd.reqres = "REQ";
     if (comm.option == "HANDSHAKE_CHORD") {
       //TODO send reshuffled data
@@ -78,16 +80,17 @@ namespace node {
         rn.err = -1;
         return rn;
       }
+      struct sockaddr_in server;
+      server.sin_port = htons(stoi(comm.ori));
+      server.sin_family = AF_INET;
+      server.sin_addr.s_addr = inet_addr(comm.ip.c_str());
+      sd.data.push_back(to_string(chord_id));
+      sd.data.push_back(to_string(_port));
+      sd.data.push_back(_address);
+      sd.option = "SET_SUCCESSOR";
+      sd.reqres = "RES";
       if (sid.data.id == chord_id) {
-        sd.option = "SET_SUCCESSOR";
-        sd.reqres = "RES";
-        sd.data.push_back(to_string(chord_id));
-        sd.data.push_back(to_string(_port));
         rn.data = sd.to_string();
-        struct sockaddr_in server;
-        server.sin_port = htons(stoi(comm.ori));
-        server.sin_family = AF_INET;
-        server.sin_addr.s_addr = inet_addr("127.0.0.1");
         rt.update_predecessor(stoi(comm.data[0]), server);
         rn.peer_sockaddr = server;
         rn.err = 1;
@@ -95,14 +98,11 @@ namespace node {
       }
       //TODO should be this nodes successor
       sd.ori = comm.ori;
-      sd.option = "SET_SUCCESSOR";
-      sd.reqres = "RES";
-      sd.data.push_back(to_string(chord_id));
-      sd.data.push_back(to_string(_port));
+      sd.ip = comm.ip;
       rn.data = sd.to_string();
       rn.peer_sockaddr = sid.data.peer_sockaddr;
       rn.err = 1;
-      rt.update_successor(stoi(comm.data[0]), client_sockaddr);
+      rt.update_successor(stoi(comm.data[0]), server);
       return rn;
     }
     else if (comm.option == "STABILIZE_CHORD") {

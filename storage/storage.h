@@ -221,8 +221,7 @@ public:
     //successor_list.pop();
 
     if (next.id == 0) {
-      perror("node has no successors");
-      //setting predecssor as successor
+      std::cout << this->id << "has no successors" << '\n'; 
       p = s;
       return;
     }

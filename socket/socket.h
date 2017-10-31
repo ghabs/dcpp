@@ -39,6 +39,10 @@ class Socket
   bool is_valid() const { return m_sock != -1; }
   bool is_closed();
   int get_sock_descriptor() { return m_sock; }
+  sockaddr_in get_socket_info () {
+    //change to reflect updates to the socket through getsockname
+    return m_addr;
+  }
  private:
    // close the socket
   int m_sock;
