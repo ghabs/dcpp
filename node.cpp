@@ -16,10 +16,6 @@
 
 #define NUM_THREADS 5
 
-#define MYPORT "4950"    // the port users will be connecting to
-
-#define MAXBUFLEN 100
-
 using namespace std;
 
 namespace node {
@@ -28,8 +24,10 @@ namespace node {
    chord_id(chord_id), rt(chord_id, M) {
 
     server_socket.create();
-    rt.update_successor(chord_id, get_server_info());
-    rt.update_predecessor(chord_id, get_server_info());
+    auto serverinfo = get_server_info();
+    rt.update_successor(chord_id, serverinfo);
+    rt.update_predecessor(chord_id, serverinfo);
+    rt.update_self(chord_id, serverinfo);
     //TODO(goldhaber): throw exception
     if (!server_socket.bind(port))
     {
@@ -69,15 +67,14 @@ namespace node {
       auto sid = this->query_chord(stoi(comm.data[0]));
       if (!sid.s){
         //TODO check how to set this up
-        /*
+        cout << "!sidhandshake" << endl;
         sd.data.push_back(comm.data[0]);
-        sd.ori = to_string(ntohs(client_sockaddr.sin_port));
+        sd.ori = comm.ori;
         sd.option = "HANDSHAKE_CHORD";
         sd.reqres = "REQ";
         rn.data = sd.to_string();
         rn.peer_sockaddr = sid.data.peer_sockaddr;
-        */
-        rn.err = -1;
+        rn.err = 1;
         return rn;
       }
       struct sockaddr_in server;
@@ -142,11 +139,14 @@ namespace node {
       }
     }
     else if (comm.option == "SET_SUCCESSOR") {
+      cout << "set" << endl;
       struct sockaddr_in server;
       server.sin_port = htons(stoi(comm.data[1]));
       server.sin_family = AF_INET;
       server.sin_addr.s_addr = inet_addr("127.0.0.1");
       rt.update_successor(stoi(comm.data[0]), server);
+      reqtab.remove_request(chord_id, storage::Requests::handshake);
+
       //Notify successors predecessor
       sd.option = "NOTIFY_CHORD";
       sd.reqres = "REQ";
@@ -350,12 +350,19 @@ namespace node {
       }
     }
     else if (comm.option == "ALIVE_CHECK") {
-      sd.reqres = "RES";
-      sd.option = "ALIVE_CHECK";
-      rn.data = sd.to_string();
-      rn.peer_sockaddr = client_sockaddr;
-      rn.err = 1;
-      return rn;
+      if (comm.reqres == "REQ") {
+        sd.reqres = "RES";
+        sd.option = "ALIVE_CHECK";
+        rn.data = sd.to_string();
+        rn.peer_sockaddr = client_sockaddr;
+        rn.err = 1;
+        return rn;
+      }
+      if (comm.reqres == "RES") {
+        reqtab.remove_request(stoi(comm.id), storage::Requests::alive);
+        rn.err = -1;
+        return rn;
+      }
     }
     else {
       // cout << "Unknown Command" << '\n';
@@ -404,6 +411,16 @@ namespace node {
     }
   }
 
+  void Node::alive_check(){
+    string send_data = to_string(chord_id) + ':' + "127.0.0.1" + ':' + to_string(ntohs(_port));
+    send_data += ":ALIVE_CHECK:REQ:";
+    auto p = rt.get_predecessor();
+    if (p.id != chord_id) {
+      //TODO change in add, might be incorrect
+      reqtab.add_request(p.id, storage::Requests::alive, storage::Requests::alive, p.peer_sockaddr, send_data);
+    }
+  }
+
   void* Node::ping(void){
     int stabilize = 0;
     int update_check = 0;
@@ -434,7 +451,10 @@ namespace node {
         }
         if (++update_check == 6){
           successor_list_update();
-          update_check = 1;
+        }
+        if (update_check == 8){
+              alive_check();
+              update_check = 1;
         }
         //TODO: fix fingers
       }
@@ -445,12 +465,12 @@ namespace node {
     switch (res) {
       case storage::Requests::join : 0; break;
       // If didn't receive handshake, then throw error;
-      case storage::Requests::handshake : perror("no partner response");
-                                          break;
+      case storage::Requests::handshake : break;
       /*If didn't receive stabilize response, then:
         successor is down. Find new successor.
       */
       case storage::Requests::update : rt.successor_fail(); break;
+      case storage::Requests::alive : rt.predecessor_fail(); break;
       case storage::Requests::disconnect : 3; break;
     }
   }

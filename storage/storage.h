@@ -83,6 +83,7 @@ public:
     }
     else -1;
   }
+  
   int get_size() { return request_storage.size(); }
   //if request has been fulfilled, remove it
   int remove_request(int id, Requests res) {
@@ -124,6 +125,7 @@ private:
   //Sets the number of bytes in keyspace
   successor s;
   successor next;
+  successor se;
   //predecessor
   successor p;
   int id;
@@ -194,6 +196,12 @@ public:
     p.id = id;
     p.peer_sockaddr = address;
   }
+
+  void update_self(int id, sockaddr_in address) {
+    se.id = id;
+    se.peer_sockaddr = address;
+  }
+
   successor get_successor() {
     //TODO: combine with above functions
       return s;
@@ -221,7 +229,7 @@ public:
     //successor_list.pop();
 
     if (next.id == 0) {
-      std::cout << this->id << "has no successors" << '\n'; 
+      std::cout << this->id << "has no successors" << '\n';
       p = s;
       return;
     }
@@ -229,6 +237,15 @@ public:
     s = next;
     //s = successor_list.front();
   }
+
+  void predecessor_fail() {
+    perror("predecessor fail");
+    //successor_list.pop();
+    std::cout << this->id << ':' << se.id << '\n';
+    p = se;
+    //s = successor_list.front();
+  }
+
   void successor_list_update(successor suc){
     if (next.id != suc.id) {
       next = suc;

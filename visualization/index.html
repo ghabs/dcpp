@@ -13,6 +13,7 @@
 }
 
 </style>
+<h1>Chord Network</h1>
 <svg width="960" height="600"></svg>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
@@ -89,5 +90,9 @@ function dragended(d) {
   d.fx = null;
   d.fy = null;
 }
+
+setTimeout(function(){
+   window.location.reload(1);
+}, 15000);
 
 </script>

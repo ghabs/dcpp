@@ -3,14 +3,13 @@
 
 case "$1" in
   start)
-  ./build/node 3000 127.0.0.1 2001 1 &
+  ./build/node 3000 127.0.0.1 2006 1 &
   ./build/node 3001 127.0.0.1 3000 2 &
   ./build/node 3002 127.0.0.1 3001 4 &
   ./build/node 3003 127.0.0.1 3002 7 &
   ./build/node 3004 127.0.0.1 3003 20 &
   ./build/node 3005 127.0.0.1 3004 22 &
   ./build/node 3006 127.0.0.1 3005 40 &
-
 
   ;;
   stats)

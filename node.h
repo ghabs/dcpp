@@ -109,7 +109,7 @@ namespace node {
       auto p = rt.get_predecessor();
       return to_string(p.id);
     }
-
+    void alive_check();
     //TODO replace everywhere and also get from running server socket info instead of presets
     sockaddr_in get_server_info() {
       struct sockaddr_in server;

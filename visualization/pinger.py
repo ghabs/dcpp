@@ -5,14 +5,12 @@ import time
 
 class Pinger(object):
     """docstring for NodeParser."""
-    def __init__(self, arg):
-        super(NodeParser, self).__init__()
-        self.arg = arg
 
-    def pinger():
+    def pinger(self):
         UDP_IP = "127.0.0.1"
         # DEFINE THE PORTS
-        ports = [3000, 3001, 3002, 3003]
+        ports = list(range(3000,3020))
+        #ports = [3000, 3001, 3002, 3003, 3004, 3005, 3006]
         # Change this to be dynamic depending on network
         MESSAGE = "45:NAN:NAN:GET_STATS:REQ"
 
@@ -56,3 +54,8 @@ class Pinger(object):
 
         with open('graph.json', 'w') as outfile:
             json.dump(json_output, outfile)
+
+    def multiple_ping(self):
+        while True:
+            self.pinger()
+            time.sleep(15)
