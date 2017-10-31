@@ -30,6 +30,9 @@ case "$1" in
   get)
   echo "2:127.0.0.1:3001:QUERY_CHORD_GET:REQ:$2" > /dev/udp/127.0.0.1/3001
   ;;
+  disconnect)
+  echo "45:NAN:NAN:DISCONNECT:REQ:" > /dev/udp/127.0.0.1/$2
+  ;;
   stop)
   echo "45:NAN:NAN:DISCONNECT:REQ:" > /dev/udp/127.0.0.1/3000
   echo "45:NAN:NAN:DISCONNECT:REQ:" > /dev/udp/127.0.0.1/3001
