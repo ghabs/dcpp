@@ -65,15 +65,15 @@ namespace node {
     }
     //TODO replace nearest neighbor and also template with successor
     commands::ro<storage::successor> query_chord(int k) {
-        commands::ro<storage::successor> io;
-        int opt_flag = 1;
-        io.data = this->rt.find_successor(k, &opt_flag);
-        if (!opt_flag) {
-          io.s = opt_flag;
-          return io;
-        }
-        io.s = 1;
+      commands::ro<storage::successor> io;
+      int opt_flag = 1;
+      io.data = this->rt.find_successor(k, &opt_flag);
+      if (!opt_flag) {
+        io.s = opt_flag;
         return io;
+      }
+      io.s = 1;
+      return io;
     };
     commands::ro<string> get_value(size_t);
     commands::ro<string> reshuffle_chord(int p){
