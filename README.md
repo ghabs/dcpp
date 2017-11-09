@@ -1,1 +1,1 @@
-First project with C++, building a decentralized hash table.
+Experimenting with the distributed hash table chord protocol.
