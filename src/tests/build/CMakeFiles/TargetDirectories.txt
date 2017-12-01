@@ -1,3 +1,0 @@
-/home/ghabs/Programming/cpp/node/tests/build/CMakeFiles/rebuild_cache.dir
-/home/ghabs/Programming/cpp/node/tests/build/CMakeFiles/edit_cache.dir
-/home/ghabs/Programming/cpp/node/tests/build/CMakeFiles/storage_tests.dir
