@@ -1,5 +1,5 @@
 # Get the exercise name from the current directory (changed to server)
-get_filename_component(exercise ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+get_filename_component(exercise node NAME)
 
 # Basic CMake project
 cmake_minimum_required(VERSION 2.8.11)
