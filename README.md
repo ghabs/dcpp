@@ -2,7 +2,7 @@ Experimenting with C++ and the distributed hash table chord protocol. A distribu
 
 Simple visual representation:
 
-![chordvisual](https://imgur.com/a/Z48hw)
+![chordvisual](https://i.imgur.com/ddblSMI.png)
 
 To run use the cli.sh script which will spin up multiple nodes on the same computer.
 
